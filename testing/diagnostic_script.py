@@ -176,7 +176,7 @@ if __name__ == '__main__':
     print(len(DATA))
     try:
         outfile.write('timestamp,{}\n'.format(strftime("%Y-%m-%d %H:%M:%S")))
-        for entry in data:
+        for entry in DATA:
             outfile.write('{},{}\n'.format(*entry))
         outfile.write(DATA)
         outfile.close()
