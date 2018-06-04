@@ -65,6 +65,12 @@ ADC_SAMPLE_RATE = 128  # 8, 16, 32, 64, 128, 250, 475, 860
 ADC_MAX_VOLTAGE = min(ADC_POLARITY * ADC_MAP[ADC_GAIN] , GLOBAL_VCC)
 ADC_STEP_SIZE = abs(ADC_MAX_VOLTAGE / 2**16)  # volt/step
 
+adc_level_to_voltage(level):
+    return level * ADC_STEP_SIZE
+
+get_position(stroke, level):
+    pass
+
 ADC = ADS1115()
 
 DAC_BITS = 12
@@ -118,11 +124,11 @@ def test_adc(alert_pin=21, channel=1, sample_rate=128, gain=1, polarity=1, timeo
     GPIO.add_event_detect(alert_pin, GPIO.BOTH, callback=diagnostic_adc_isr)  # may want to look into GPIO.RISING || GPIO.FALLING
     # start = perf_counter()
     print('starting loop')
-    adc.start_adc_comparator(channel,2**16-1,0, gain=gain, data_rate=sample_rate)
+    ADC.start_adc_comparator(channel,2**16-1,0, gain=gain, data_rate=sample_rate)
     sleep(timeout)
     # while perf_counter() - start < 5:
         # pass
-    adc.stop_adc()
+    ADC.stop_adc()
     GPIO.cleanup()
 
 def test_dac():
@@ -134,9 +140,9 @@ def calibrate_adc_thresholds():
 def moniter_adc_file(outfile, timeout):
     GPIO.setup(ADC_ALERT_PIN, GPIO.IN)
     GPIO.add_event_detect(ADC_ALERT_PIN, GPIO.BOTH, callback=moniter_adc_isr)  # may want to look into GPIO.RISING || GPIO.FALLING
-    adc.start_adc_comparator(channel,2**16-1,0, gain=gain, data_rate=sample_rate)
+    ADC.start_adc_comparator(channel,2**16-1,0, gain=gain, data_rate=sample_rate)
     sleep(timeout)
-    adc.stop_adc()
+    ADC.stop_adc()
     GPIO.cleanup()
 
 
