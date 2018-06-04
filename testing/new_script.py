@@ -19,7 +19,7 @@ import RPi.GPIO as GPIO
 
 # Actuator information
 # used to help map voltage to distance
-STROKE = 1  # stroke length (INCHES)
+STROKE = 12  # stroke length (INCHES)
 POT_VALUE = 10000  # 10k pot
 POT_VOLTAGE = 3.3  # connected to a 3V3 supply rail
 DISTANCE_PER_VOLT = STROKE / POT_VOLTAGE

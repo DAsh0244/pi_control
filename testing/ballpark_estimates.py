@@ -52,6 +52,7 @@ POT_VOLTAGE = 3.3
 POT_RESTISTANCE = 10000
 
 # actuator  information
+STROKE = 12
 ACTUATOR_INCHES_PER_SECOND = {35:{'None':2.00,
                                                                     'Full':1.38},
                                                             50:{'None':1.14,
@@ -77,18 +78,24 @@ for load, types in ACTUATOR_INCHES_PER_SECOND.items():
         # print('{:^10}|{:^14}|{:^25}'.format(load_type, in2mm(rate), in2mm(DESIRED_ACC/rate)))
     print('')
 
-print('stroke distance check:')
-print('Stroke | Detectable Distance (in) | Meets Spec | Safety Margin')
-# print('Stroke | Detectable Distance (mm) | Meets Spec | Safety Margin')
-for STROKE in range(10,25+1):
-    # STROKE = 1
-    DISTANCE_PER_VOLT = STROKE / POT_VOLTAGE
-    DETECTABLE_DISTANCE = ADC_STEP_SIZE * DISTANCE_PER_VOLT
-    print('{:^7}|{:^26.6G}|{:^12}|{:^12}'.format(STROKE,
-                                                                     # in2mm(DETECTABLE_DISTANCE),
-                                                                     DETECTABLE_DISTANCE,
-                                                                     str(DETECTABLE_DISTANCE<DESIRED_ACC),
-                                                                     str((DETECTABLE_DISTANCE*10)<DESIRED_ACC)
+print('stroke distance check (bars around actual stroke length):')
+# print('Stroke (in) | Detectable Distance (in) | Meets Spec | Safety Margin')
+print('Stroke (mm) | Detectable Distance (mm) | Meets Spec | Safety Margin')
+print('+'.join(['-'*12, '-'*26, '-'*12, '-'*12]))
+for stroke in range(10,25+1):
+    distance_per_volt = stroke / POT_VOLTAGE
+    detectable_distance = ADC_STEP_SIZE * distance_per_volt
+    if stroke == STROKE:
+        print('+'.join(['-'*12, '-'*26, '-'*12, '-'*12]))
+    print('{:^12.6f}|{:^26.6G}|{:^12}|{:^12}'.format(\
+                                                                    # stroke,
+                                                                    # detectable_distance,
+                                                                    in2mm(stroke),
+                                                                    in2mm(detectable_distance),
+                                                                    repr(detectable_distance<DESIRED_ACC),
+                                                                    repr((detectable_distance*10)<DESIRED_ACC)
                                                                      )
              )
+    if stroke == STROKE:
+        print('+'.join(['-'*12, '-'*26, '-'*12, '-'*12]))
 print('')
