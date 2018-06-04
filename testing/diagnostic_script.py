@@ -159,7 +159,7 @@ def test_dac():
 # def calibrate_adc_thresholds():
     # pass
 
-def moniter_adc_file(outfile, timeout):
+def moniter_adc_file(outfile, timeout, *args, **kwargs):
     global LOGFILE
     GPIO.setup(17, GPIO.OUT)           # set GPIO17 as an output
     GPIO.setup(22, GPIO.OUT)           # set GPIO22 as an output
