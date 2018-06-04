@@ -175,6 +175,10 @@ if __name__ == '__main__':
     print(len(DATA))
     GPIO.cleanup()
     try:
+        outfile.write('timestamp,{}\n'.format(strftime("%Y-%m-%d %H:%M:%S")))
+        for entry in data:
+            outfile.write('{},{}\n'.format(*entry))
+        outfile.write(DATA)
         outfile.close()
     except:
         pass
