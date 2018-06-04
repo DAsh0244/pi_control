@@ -108,7 +108,7 @@ def calibrate_adc_isr(channel):
 def moniter_adc_isr(channel):
     global LOGFILE, LAST_TIME
     ts = perf_counter()
-    LOGFILE.write('{},{}\n'.format(ADC.get_last_result(), perf_counter()-start,value))
+    LOGFILE.write('{},{}\n'.format(ADC.get_last_result(),ts-LAST_TIME))
     LAST_TIME = ts
     if (value <= 750):  # ideally calibrate these
         print('17 on')
