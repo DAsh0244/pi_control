@@ -172,22 +172,22 @@ def moniter_adc_file(outfile, timeout):
     sleep(timeout)
     ADC.stop_adc()
     LOGFILE.close()
-    dac.set_voltage(0)
+    dac.set_voltage(0   )
 
 
 if __name__ == '__main__':
     args = vars(parser.parse_args())
     print(args)
     if args['save'] is not None:
-        outfile = open(args['save'], 'w')
-        args.pop('save')
+        args['outfile'] = args.pop('save')
+        moniter_adc_file(**args)
     if args['config'] is not None:
         config = json.load(args['config'])
         args.pop('config')
         for entry,val in config.items():
             global entry
             entry = val
-    test_adc(**args)
+    # test_adc(**args)
     print(DATA)
     print(len(DATA))
     try:
