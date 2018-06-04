@@ -93,6 +93,7 @@ parser.add_argument('-a','--alert_pin', type=int, default=ADC_ALERT_PIN, help='R
 parser.add_argument('-p','--polarity', type=int, choices=(-1,+1), default=ADC_POLARITY, help='ADC input polarity (1, -1)')
 parser.add_argument('-g','--gain', type=float, choices=(2/3,1,2,3,8,16), default=ADC_GAIN, help='ADC input polarity (1, -1)')
 parser.add_argument('-t','--timeout', type=int, default=5, help='set timout for loop')
+parser.add_argument('-s','--save', type=str, default=None, help='optional file to save results to')
 parser.add_argument('-V', '--version', action='version', version='%(prog)s {}'.format(__version__))
 
 def diagnostic_adc_isr(channel):
@@ -166,8 +167,14 @@ def moniter_adc_file(outfile, timeout):
 
 if __name__ == '__main__':
     args = vars(parser.parse_args())
+    if args['save'] is not None:
+        outfile = open(args['save'], 'w'
     print(args)
     test_adc(**args)
     print(DATA)
     print(len(DATA))
     GPIO.cleanup()
+    try:
+        outfile.close()
+    except:
+        pass
