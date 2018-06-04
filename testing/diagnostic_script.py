@@ -140,7 +140,7 @@ def calibrate_adc_thresholds():
 def moniter_adc_file(outfile, timeout):
     GPIO.setup(ADC_ALERT_PIN, GPIO.IN)
     GPIO.add_event_detect(ADC_ALERT_PIN, GPIO.BOTH, callback=moniter_adc_isr)  # may want to look into GPIO.RISING || GPIO.FALLING
-    ADC.start_adc_comparator(channel,2**16-1,0, gain=gain, data_rate=sample_rate)
+    ADC.start_adc_comparator(ADC_CHANNEL, 2**16-1, 0, gain=gain, data_rate=sample_rate)
     sleep(timeout)
     ADC.stop_adc()
     GPIO.cleanup()
