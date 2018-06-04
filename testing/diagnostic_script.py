@@ -131,10 +131,10 @@ def moniter_adc_isr(channel):
         gpio off
     """
 
-    if value >= POS_THREHSOLD_HIGH or value < 5:
+    if value >= POS_THREHSOLD_HIGH:
         print('17 off')
         GPIO.output(17, 0)
-    else:
+    elif value < POS_THREHSOLD_LOW:
         print('17 on')
         GPIO.output(17, 1)
 
