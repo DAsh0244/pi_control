@@ -146,6 +146,7 @@ def test_adc(alert_pin=21, channel=1, sample_rate=128, gain=1, polarity=1, timeo
     GPIO.add_event_detect(alert_pin, GPIO.BOTH, callback=diagnostic_adc_isr)  # may want to look into GPIO.RISING || GPIO.FALLING
     # start = perf_counter()
     print('starting loop')
+    LAST_TIME=perf_counter()
     ADC.start_adc_comparator(channel,2**16-1,0, gain=gain, data_rate=sample_rate)
     sleep(timeout)
     # while perf_counter() - start < 5:
