@@ -61,10 +61,12 @@ ACTUATOR_INCHES_PER_SECOND = {35:{'None':2.00,
                                                                      'Full':0.28},
                                                             }
 
+# take worst case actuator speed:
+move_rate = min(load['None'] for load in ACTUATOR_INCHES_PER_SECOND.values())
 print('ADC_LATENCY (s):')
-print('Sample Rate (sps) | System Latency (s) | Data Rate (bps)')
+print('Sample Rate (sps) | System Latency (s) | Data Rate (bps) | Movement Precision (mm)')
 for sample_rate in (8, 16, 32, 64, 128, 250, 475, 860):
-    print('{:^17} | {:^18.6f} | {:^16}'.format(sample_rate, 1/sample_rate, 16*sample_rate))
+    print('{:^17} | {:^18.6f} | {:^16} | {:^16f}'.format(sample_rate, 1/sample_rate, 16*sample_rate, in2mm(move_rate)/sample_rate))
 print('')
 
 print('Load force and response rate: ')
