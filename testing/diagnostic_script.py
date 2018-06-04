@@ -167,19 +167,19 @@ def moniter_adc_file(outfile, timeout):
 
 if __name__ == '__main__':
     args = vars(parser.parse_args())
+    print(args)
     if args['save'] is not None:
         outfile = open(args['save'], 'w')
         args.pop('save')
-    print(args)
     test_adc(**args)
     print(DATA)
     print(len(DATA))
-    GPIO.cleanup()
     try:
         outfile.write('timestamp,{}\n'.format(strftime("%Y-%m-%d %H:%M:%S")))
         for entry in data:
             outfile.write('{},{}\n'.format(*entry))
         outfile.write(DATA)
         outfile.close()
-    except:
-        pass
+    except Exception as e:
+        raise(e)
+    GPIO.cleanup()
