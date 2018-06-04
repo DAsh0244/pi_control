@@ -6,14 +6,36 @@ from collections import deque
 from argparse import ArgumentParser
 
 # import hardware interfaces
-from Adafruit_ADS1x15 import ADS1115
-import RPi.GPIO as GPIO
+try:
+    from Adafruit_ADS1x15 import ADS1115
+    import RPi.GPIO as GPIO
+except ImportError:
+    print('failed to load hardware interfaces, using dummy for general checking')
+    class ADS1115:
+        @staticmethod
+        def start_adc(channel, gain=1,data_rate=128):
+            pass
+        @staticmethod
+        def stop_adc():
+            pass
+    class GPIO:
+        BCM = IN = RISING = None
+        @staticmethod
+        def setmode(mode):
+            pass
+        @staticmethod
+        def setup(pin, mode):
+            pass
+        @staticmethod
+        def add_event_detect(pin, mode, callback):
+            pass
+
 
 __version_info = (0,0,1)
 __version__ = '.'.join(map(str, __version_info))
 
 
-DATA = deuqe()
+DATA = deque()
 LAST_TIME = 0
 
 
@@ -38,7 +60,7 @@ ADC_SAMPLE_RATE = 128  # 8, 16, 32, 64, 128, 250, 475, 860
 ADC_MAX_VOLTAGE = ADC_POLARITY * ADC_MAP[ADC_GAIN]
 ADC_STEP_SIZE = abs(ADC_MAX_VOLTAGE / 2**16)  # volt/step
 
-adc = Adafruit_ADS1x15.ADS1115()
+adc = ADS1115()
 
 GPIO.setmode(GPIO.BCM)    # choose BCM or BOARD
 # GPIO.setup(ADC_ALERT_PIN, GPIO.IN)
@@ -51,7 +73,7 @@ parser.add_argument('-r', '--sample_rate', type=int, choices=(8, 16, 32, 64, 128
 parser.add_argument('-a','--alert_pin', type=int, default=ADC_ALERT_PIN, help='RPI gpio pin number (eg: gpio27 -> "-a 27")')
 parser.add_argument('-p','--polarity', type=int, choices=(-1,+1), default=ADC_POLARITY, help='ADC input polarity (1, -1)')
 parser.add_argument('-g','--gain', type=float, choices=(2/3,1,2,3,8,16), default=ADC_GAIN, help='ADC input polarity (1, -1)')
-parser.add_argument('-V', '--version', action='version', version='%(prog)s '.format(__version__))
+parser.add_argument('-V', '--version', action='version', version='%(prog)s {}'.format(__version__))
 
 def adc_isr():
     global DATA, LAST_TIME
