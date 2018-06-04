@@ -143,7 +143,6 @@ def test_adc(alert_pin=21, channel=1, sample_rate=128, gain=1, polarity=1, timeo
     # while perf_counter() - start < 5:
         # pass
     ADC.stop_adc()
-    GPIO.cleanup()
 
 def test_dac():
     pass
@@ -162,7 +161,6 @@ def moniter_adc_file(outfile, timeout):
     ADC.start_adc_comparator(ADC_CHANNEL, 2**16-1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
     sleep(timeout)
     ADC.stop_adc()
-    GPIO.cleanup()
     LOGFILE.close()
 
 
@@ -172,3 +170,4 @@ if __name__ == '__main__':
     test_adc(**args)
     print(DATA)
     print(len(DATA))
+    GPIO.cleanup()
