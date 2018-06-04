@@ -124,7 +124,7 @@ def moniter_adc_isr(channel):
         gpio off
     """
 
-    if (value >= 17800):
+    if value >= 17800 value < 5:
         print('17 off')
         GPIO.output(17, 0)
     else:
