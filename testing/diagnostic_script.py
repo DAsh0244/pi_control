@@ -168,9 +168,11 @@ def moniter_adc_file(outfile, timeout):
     GPIO.setup(ADC_ALERT_PIN, GPIO.IN)
     GPIO.add_event_detect(ADC_ALERT_PIN, GPIO.BOTH, callback=moniter_adc_isr)  # may want to look into GPIO.RISING || GPIO.FALLING
     ADC.start_adc_comparator(ADC_CHANNEL, 2**16-1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
+    dac.set_voltage(2048)
     sleep(timeout)
     ADC.stop_adc()
     LOGFILE.close()
+    dac.set_voltage(0)
 
 
 if __name__ == '__main__':
