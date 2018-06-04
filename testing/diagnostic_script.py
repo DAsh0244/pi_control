@@ -180,6 +180,7 @@ if __name__ == '__main__':
         args.pop('save')
     if args['config'] is not None:
         config = json.load(args['config'])
+        args.pop('config')
         for entry,val in config.items():
             global entry
             entry = val
