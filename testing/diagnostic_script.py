@@ -139,7 +139,7 @@ def moniter_adc_isr(channel):
         GPIO.output(17, 1)
 
 
-def test_adc(alert_pin=21, channel=1, sample_rate=128, gain=1, polarity=1, timeout=5):
+def test_adc(alert_pin=21, channel=1, sample_rate=128, gain=1, polarity=1, timeout=5, *args, **kwargs):
     max_voltage = polarity * ADC_MAP[gain]
     step_size = abs(max_voltage / ADC_LEVELS)
     GPIO.setup(alert_pin, GPIO.IN)
