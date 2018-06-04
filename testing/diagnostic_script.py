@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 import sys
+import json
 from collections import deque
 from argparse import ArgumentParser
 from time import strftime, perf_counter, sleep
@@ -81,6 +82,9 @@ DAC_STEP_SIZE = DAC_VOLTAGE/DAC_LEVELS
 
 DAC = MCP4725()
 
+POS_THREHSOLD_LOW = 750
+POS_THREHSOLD_HIGH = 17800
+
 GPIO.setmode(GPIO.BCM)    # choose BCM or BOARD
 # GPIO.setup(ADC_ALERT_PIN, GPIO.IN)
 # GPIO.add_event_detect(ADC_ALERT_PIN, GPIO.RISING, ADC_isr)
@@ -94,6 +98,9 @@ parser.add_argument('-p','--polarity', type=int, choices=(-1,+1), default=ADC_PO
 parser.add_argument('-g','--gain', type=float, choices=(2/3,1,2,3,8,16), default=ADC_GAIN, help='ADC input polarity (1, -1)')
 parser.add_argument('-t','--timeout', type=int, default=5, help='set timout for loop')
 parser.add_argument('-s','--save', type=str, default=None, help='optional file to save results to')
+parser.add_argument('--config', type=str, default=None, help='optional configuration file')
+
+
 parser.add_argument('-V', '--version', action='version', version='%(prog)s {}'.format(__version__))
 
 def diagnostic_adc_isr(channel):
@@ -124,7 +131,7 @@ def moniter_adc_isr(channel):
         gpio off
     """
 
-    if value >= 17800 value < 5:
+    if value >= POS_THREHSOLD_HIGH or value < 5:
         print('17 off')
         GPIO.output(17, 0)
     else:
@@ -148,8 +155,8 @@ def test_adc(alert_pin=21, channel=1, sample_rate=128, gain=1, polarity=1, timeo
 def test_dac():
     pass
 
-def calibrate_adc_thresholds():
-    pass
+# def calibrate_adc_thresholds():
+    # pass
 
 def moniter_adc_file(outfile, timeout):
     global LOGFILE
@@ -171,6 +178,11 @@ if __name__ == '__main__':
     if args['save'] is not None:
         outfile = open(args['save'], 'w')
         args.pop('save')
+    if args['config'] is not None:
+        config = json.load(args['config'])
+        for entry,val in config.items():
+            global entry
+            entry = val
     test_adc(**args)
     print(DATA)
     print(len(DATA))
