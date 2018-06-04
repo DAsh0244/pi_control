@@ -65,10 +65,10 @@ ADC_SAMPLE_RATE = 128  # 8, 16, 32, 64, 128, 250, 475, 860
 ADC_MAX_VOLTAGE = min(ADC_POLARITY * ADC_MAP[ADC_GAIN] , GLOBAL_VCC)
 ADC_STEP_SIZE = abs(ADC_MAX_VOLTAGE / 2**16)  # volt/step
 
-adc_level_to_voltage(level):
+def adc_level_to_voltage(level):
     return level * ADC_STEP_SIZE
 
-get_position(stroke, level):
+def get_position(stroke, level):
     pass
 
 ADC = ADS1115()
