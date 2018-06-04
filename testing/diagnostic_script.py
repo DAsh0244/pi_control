@@ -168,7 +168,7 @@ def moniter_adc_file(outfile, timeout):
 if __name__ == '__main__':
     args = vars(parser.parse_args())
     if args['save'] is not None:
-        outfile = open(args['save'], 'w'
+        outfile = open(args['save'], 'w')
     print(args)
     test_adc(**args)
     print(DATA)
