@@ -77,8 +77,9 @@ parser.add_argument('-t','--timeout', type=float, default=5, help='timeout for t
 parser.add_argument('-V', '--version', action='version', version='%(prog)s {}'.format(__version__))
 
 def adc_isr(arg):
+    print(arg)
     global DATA, LAST_TIME
-    # print('isr_triggered')
+    print('isr_triggered')
     ts = perf_counter()
     DATA.append((adc.get_last_result(), ts-LAST_TIME))
     LAST_TIME = ts
@@ -86,12 +87,15 @@ def adc_isr(arg):
 def main(alert_pin=21, channel=1, sample_rate=128, gain=1, polarity=1, timeout=5):
     max_voltage = polarity * ADC_MAP[gain]
     step_size = abs(max_voltage / ADC_LEVELS)
-    GPIO.setup(alert_pin, GPIO.IN)
+    GPIO.setup(alert_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP )
     GPIO.add_event_detect(alert_pin, GPIO.BOTH, callback=adc_isr)
     # start = perf_counter()
     print('starting loop')
-    adc.start_adc_comparator(channel,2**16-1,0, gain=gain, data_rate=sample_rate)
+    adc.start_adc(channel, gain=gain, data_rate=sample_rate)
+    sleep(0.01)
+    print(GPIO.input(alert_pin))
     sleep(timeout)
+    print(GPIO.input(alert_pin))
     # while perf_counter() - start < 5:
         # pass
     adc.stop_adc()

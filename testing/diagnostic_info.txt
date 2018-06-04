@@ -1,0 +1,122 @@
+diagnostic information script V0.01:
+uname:
+Linux raspberrypi 4.4.11-v7+ #888 SMP Mon May 23 20:10:33 BST 2016 armv7l GNU/Linux
+cpuinfo:
+processor	: 0
+model name	: ARMv7 Processor rev 4 (v7l)
+BogoMIPS	: 76.80
+Features	: half thumb fastmult vfp edsp neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm crc32 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xd03
+CPU revision	: 4
+
+processor	: 1
+model name	: ARMv7 Processor rev 4 (v7l)
+BogoMIPS	: 76.80
+Features	: half thumb fastmult vfp edsp neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm crc32 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xd03
+CPU revision	: 4
+
+processor	: 2
+model name	: ARMv7 Processor rev 4 (v7l)
+BogoMIPS	: 76.80
+Features	: half thumb fastmult vfp edsp neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm crc32 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xd03
+CPU revision	: 4
+
+processor	: 3
+model name	: ARMv7 Processor rev 4 (v7l)
+BogoMIPS	: 76.80
+Features	: half thumb fastmult vfp edsp neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm crc32 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xd03
+CPU revision	: 4
+
+Hardware	: BCM2709
+Revision	: a22082
+Serial		: 00000000e5091f3c
+cpu clock:
+       capacity: 1200MHz
+       capacity: 1200MHz
+       capacity: 1200MHz
+       capacity: 1200MHz
+i2c baud information:
+lshw full output:
+raspberrypi
+    description: Computer
+    product: Raspberry Pi 3 Model B Rev 1.2
+    width: 32 bits
+  *-core
+       description: Motherboard
+       physical id: 0
+       capabilities: brcm_bcm2710 brcm_bcm2709
+     *-cpu:0
+          description: CPU
+          product: cpu
+          physical id: 0
+          bus info: cpu@0
+          size: 1200MHz
+          capacity: 1200MHz
+          capabilities: cpufreq
+     *-cpu:1 DISABLED
+          description: CPU
+          product: cpu
+          physical id: 1
+          bus info: cpu@1
+          size: 1200MHz
+          capacity: 1200MHz
+          capabilities: cpufreq
+     *-cpu:2 DISABLED
+          description: CPU
+          product: cpu
+          physical id: 2
+          bus info: cpu@2
+          size: 1200MHz
+          capacity: 1200MHz
+          capabilities: cpufreq
+     *-cpu:3 DISABLED
+          description: CPU
+          product: cpu
+          physical id: 3
+          bus info: cpu@3
+          size: 1200MHz
+          capacity: 1200MHz
+          capabilities: cpufreq
+     *-memory
+          description: System memory
+          physical id: 4
+          size: 925MiB
+  *-network:0
+       description: Wireless interface
+       physical id: 1
+       bus info: usb@1:1.5
+       logical name: wlan0
+       serial: 74:da:38:7e:38:f7
+       capabilities: ethernet physical wireless
+       configuration: broadcast=yes driver=rtl8192cu ip=147.155.222.161 multicast=yes wireless=IEEE 802.11bg
+  *-network:1
+       description: Ethernet interface
+       physical id: 2
+       logical name: eth0
+       serial: b8:27:eb:09:1f:3c
+       size: 10Mbit/s
+       capacity: 100Mbit/s
+       capabilities: ethernet physical tp mii 10bt 10bt-fd 100bt 100bt-fd autonegotiation
+       configuration: autonegotiation=on broadcast=yes driver=smsc95xx driverversion=22-Aug-2005 duplex=half firmware=smsc95xx USB 2.0 Ethernet link=no multicast=yes port=MII speed=10Mbit/s
+  *-network:2
+       description: Wireless interface
+       physical id: 3
+       logical name: wlan1
+       serial: b8:27:eb:5c:4a:69
+       capabilities: ethernet physical wireless
+       configuration: broadcast=yes driver=brcmfmac driverversion=7.45.41.26 firmware=01-df77e4a7 ip=147.155.223.229 multicast=yes wireless=IEEE 802.11bgn
