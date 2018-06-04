@@ -178,7 +178,7 @@ if __name__ == '__main__':
         outfile.write('timestamp,{}\n'.format(strftime("%Y-%m-%d %H:%M:%S")))
         for entry in DATA:
             outfile.write('{},{}\n'.format(*entry))
-        outfile.write(DATA)
+        # outfile.write(DATA)
         outfile.close()
     except Exception as e:
         raise(e)
