@@ -111,12 +111,25 @@ def moniter_adc_isr(channel):
     value = ADC.get_last_result()
     LOGFILE.write('{},{}\n'.format(value,ts-LAST_TIME))
     LAST_TIME = ts
-    if (value <= 750):  # ideally calibrate these
-        print('17 on')
-        GPIO.output(17, 1)
-    elif (value >= 17800):
+    """
+    starts at stop:
+    value ~ 0
+        gpio on:
+    value < 750
+        gpio on:
+    750 < value < 17800
+        gpio on:
+    value > 17800
+        gpio off
+    """
+
+    if (value >= 17800):
         print('17 off')
         GPIO.output(17, 0)
+    else:
+        print('17 on')
+        GPIO.output(17, 1)
+
 
 def test_adc(alert_pin=21, channel=1, sample_rate=128, gain=1, polarity=1, timeout=5):
     max_voltage = polarity * ADC_MAP[gain]
@@ -149,7 +162,6 @@ def moniter_adc_file(outfile, timeout):
     ADC.start_adc_comparator(ADC_CHANNEL, 2**16-1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
     sleep(timeout)
     ADC.stop_adc()
-
     GPIO.cleanup()
     LOGFILE.close()
 

@@ -1,6 +1,6 @@
 import time
 
- 
+
 # Import the ADS1x15 module.
 
 import Adafruit_ADS1x15
@@ -9,9 +9,9 @@ import Adafruit_ADS1x15
 import Adafruit_MCP4725
 
 
-import RPi.GPIO as GPIO            # import_ RPi.GPIO module 
+import RPi.GPIO as GPIO            # import_ RPi.GPIO module
 
-GPIO.setmode(GPIO.BCM)             # choose BCM or BOARD 
+GPIO.setmode(GPIO.BCM)             # choose BCM or BOARD
 
 from time import sleep, strftime
 
@@ -19,7 +19,7 @@ GPIO.setup(17, GPIO.OUT)           # set GPIO17 as an output
 
 GPIO.setup(22, GPIO.OUT)           # set GPIO22 as an output
 
- 
+
 
 # Create an ADS1115 ADC (16-bit) instance.
 
@@ -49,7 +49,7 @@ dac = Adafruit_MCP4725.MCP4725()
 
 GAIN = 1
 
- 
+
 
 # Start continuous ADC conversions on channel 1 using the previously set gain
 
@@ -82,9 +82,8 @@ def write_value(value):
         with open("value.csv", "a") as log:
                 log.write("{0},{1}\n".format(strftime("%Y-%m-%d %H:%M:%S"),str(value)))
 
-GPIO.output(22, 0)         # set GPIO22 to 1/GPIO.HIGH/True 
+GPIO.output(22, 0)         # set GPIO22 to 1/GPIO.HIGH/True
 
- 
 
 # Read channel 0 for 5 seconds and print out its values.
 
@@ -96,42 +95,42 @@ while (time.time() - start) <= 1800.0: # Read the last ADC conversion value and 
 
     value = adc.get_last_result()
 
-    print('Channel 1: {0}'.format(value)) 
+    print('Channel 1: {0}'.format(value))
 
     if (value <= 750):
 
-        GPIO.output(17, 1)         
+        GPIO.output(17, 1)
 
-        sleep(0.05)                
+        sleep(0.05)
 
         write_value(value)
 
     elif (value >= 17800):
 
-        GPIO.output(17, 0)         
+        GPIO.output(17, 0)
 
-        sleep(0.05)                
-        
+        sleep(0.05)
+
         write_value(value)
-        
+
     else:
 
         sleep (0.05)
-        
+
 print('Go to the start position')
 
 while (value > 750): # Read the last ADC conversion value and print it out.
 
         value = adc.get_last_result()
 
-        print('Channel 1: {0}'.format(value)) 
+        print('Channel 1: {0}'.format(value))
 
-        GPIO.output(17, 0)         
+        GPIO.output(17, 0)
 
-        sleep(0.05)                
-        
-        
-GPIO.cleanup()                 # resets all GPIO ports used by this program 
+        sleep(0.05)
+
+
+GPIO.cleanup()                 # resets all GPIO ports used by this program
 
 # Stop continuous conversion.  After this point you can't get data from get_last_result!
 
