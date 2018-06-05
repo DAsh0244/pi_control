@@ -17,7 +17,7 @@ except ImportError:
     print('failed to load hardware interfaces, using dummy for general checking')
     def NOP(*args, **kwargs):
         """function that matches any prototype and proceeds to do nothing"""
-            pass
+        pass
     class MCP4725:
         """quick stub class for mcp4725"""
         set_voltage = NOP
