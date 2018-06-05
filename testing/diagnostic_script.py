@@ -27,25 +27,11 @@ except ImportError:
     class GPIO:
         """quick stub class for GPIO"""
         BCM = IN = RISING = None
-        setmode = setup = add_event_detect = NOP
+        setmode = setup = add_event_detect = cleanup = remove_event_detect = NOP
 
 __version_info = (0,0,2)
 __version__ = '.'.join(map(str, __version_info))
 
-
-# TODO: implement subparsers
-# input options parser
-parser = ArgumentParser() # 'elastocaloric testing'
-# parser.add_argument('-c', '--channel', type=int, choices=(1,2,3,4), help='ADC input channel', default=ADC_CHANNEL)
-parser.add_argument('-r', '--sample_rate', type=int, choices=(8, 16, 32, 64, 128, 250, 475, 860),
-                                    default=ADC_SAMPLE_RATE, help='Sample rate for ADC')
-# parser.add_argument('-a','--alert_pin', type=int, default=ADC_ALERT_PIN, help='RPI gpio pin number (eg: gpio27 -> "-a 27")')
-# parser.add_argument('-p','--polarity', type=int, choices=(-1,+1), default=ADC_POLARITY, help='ADC input polarity (1, -1)')
-parser.add_argument('-g','--gain', type=float, choices=(2/3,1,2,3,8,16), default=ADC_GAIN, help='ADC input polarity (1, -1)')
-parser.add_argument('-t','--timeout', type=int, default=5, help='set timout for loop')
-parser.add_argument('-o','--outfile', type=str, default=None, help='optional file to save results to')
-parser.add_argument('--config', type=str, default=None, help='optional configuration file')
-parser.add_argument('-V', '--version', action='version', version='%(prog)s {}'.format(__version__))
 
 # globals for routines & ISRs
 DATA = deque()
@@ -100,6 +86,21 @@ POS_LIMIT_LOW = 10
 POS_THREHSOLD_LOW = 750
 POS_THREHSOLD_HIGH = 17800
 POS_LIMIT_HIGH = round(GLOBAL_VCC / ADC_MAX_VOLTAGE * ADC_MAX_LEVEL)
+
+# TODO: implement subparsers
+# input options parser
+parser = ArgumentParser() # 'elastocaloric testing'
+# parser.add_argument('-c', '--channel', type=int, choices=(1,2,3,4), help='ADC input channel', default=ADC_CHANNEL)
+parser.add_argument('-r', '--sample_rate', type=int, choices=(8, 16, 32, 64, 128, 250, 475, 860),
+                                    default=ADC_SAMPLE_RATE, help='Sample rate for ADC')
+# parser.add_argument('-a','--alert_pin', type=int, default=ADC_ALERT_PIN, help='RPI gpio pin number (eg: gpio27 -> "-a 27")')
+# parser.add_argument('-p','--polarity', type=int, choices=(-1,+1), default=ADC_POLARITY, help='ADC input polarity (1, -1)')
+parser.add_argument('-g','--gain', type=float, choices=(2/3,1,2,3,8,16), default=ADC_GAIN, help='ADC input polarity (1, -1)')
+parser.add_argument('-t','--timeout', type=int, default=5, help='set timout for loop')
+parser.add_argument('-o','--outfile', type=str, default=None, help='optional file to save results to')
+parser.add_argument('--config', type=str, default=None, help='optional configuration file')
+parser.add_argument('-V', '--version', action='version', version='%(prog)s {}'.format(__version__))
+
 
 # human readable conversion functions
 def level2voltage(level):
@@ -241,7 +242,7 @@ def position_test_isr(channel):
         DAC.set_voltage(0)
         position_test_isr.flag = False
         # ADC.stop_adc()
-    elif value =< POS_THREHSOLD_LOW and position_test_isr.flag:
+    elif value <= POS_THREHSOLD_LOW and position_test_isr.flag:
         print('Hit desiginated min limit')
         GPIO.output(17, 1)
         DAC.set_voltage(0)
@@ -437,9 +438,9 @@ if __name__ == '__main__':
     if args['config'] is not None:
         config = json.load(args['config'])
         args.pop('config')
-        for entry,val in config.items():
-            global entry
-            entry = val
+        # for entry,val in config.items():
+            # global entry
+            # entry = val
     # test_adc(**args)
     # print(DATA)
     # print(len(DATA))
