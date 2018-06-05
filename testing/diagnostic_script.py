@@ -14,16 +14,20 @@ try:
     from Adafruit_MCP4725 import MCP4725
     import RPi.GPIO as GPIO
 except ImportError:
+    from random import randint
     print('failed to load hardware interfaces, using dummy for general checking')
     def NOP(*args, **kwargs):
         """function that matches any prototype and proceeds to do nothing"""
         pass
+    def SOP(*args, **kwargs):
+        return randint(0,2**15-1)
     class MCP4725:
         """quick stub class for mcp4725"""
         set_voltage = NOP
     class ADS1115:
         """quick stub class for ADS1115"""
-        start_adc = start_adc_comparator = stop_adc = NOP
+        start_adc = start_adc_comparator = stop_adc  = NOP
+        get_last_result = SOP
     class GPIO:
         """quick stub class for GPIO"""
         BCM = IN = RISING = None
@@ -83,8 +87,8 @@ DISTANCE_PER_LEVEL = ADC_STEP_SIZE * DISTANCE_PER_VOLT  # inches / step
 
 # default Thresholds
 POS_LIMIT_LOW = 10
-POS_THREHSOLD_LOW = 750
-POS_THREHSOLD_HIGH = 17800
+POS_THRESHOLD_LOW = 750
+POS_THRESHOLD_HIGH = 17800
 POS_LIMIT_HIGH = round(GLOBAL_VCC / ADC_MAX_VOLTAGE * ADC_MAX_LEVEL)
 
 # TODO: implement subparsers
@@ -223,10 +227,10 @@ def moniter_adc_isr(channel):
     value > 17800
         gpio off
     """
-    if value >= POS_THREHSOLD_HIGH:
+    if value >= POS_THRESHOLD_HIGH:
         print('reverse')
         GPIO.output(17, 0)
-    elif value < POS_THREHSOLD_LOW:
+    elif value < POS_THRESHOLD_LOW:
         print('forward')
         GPIO.output(17, 1)
 
@@ -236,13 +240,13 @@ def position_test_isr(channel):
         print('Hit absolute max limit')
         GPIO.output(17, 0)
         position_test_isr.flag = True
-    elif value >= POS_THREHSOLD_HIGH and position_test_isr.flag:
+    elif value >= POS_THRESHOLD_HIGH and position_test_isr.flag:
         print('Hit designated max limit')
         GPIO.output(17, 0)
         DAC.set_voltage(0)
         position_test_isr.flag = False
         # ADC.stop_adc()
-    elif value <= POS_THREHSOLD_LOW and position_test_isr.flag:
+    elif value <= POS_THRESHOLD_LOW and position_test_isr.flag:
         print('Hit desiginated min limit')
         GPIO.output(17, 1)
         DAC.set_voltage(0)
@@ -261,7 +265,7 @@ def calibrate_position():
     """
     calibrate system position thresholds
     """
-    # global POS_LIMIT_LOW, POS_THREHSOLD_LOW, POS_THREHSOLD_HIGH, POS_LIMIT_HIGH
+    # global POS_LIMIT_LOW, POS_THRESHOLD_LOW, POS_THRESHOLD_HIGH, POS_LIMIT_HIGH
     print('Beginning calibration routine...')
     GPIO.setup(ADC_ALERT_PIN, GPIO.IN)
     GPIO.setup(RELAY_1_PIN, GPIO.OUT)   # set GPIO17 as an output
@@ -294,7 +298,7 @@ def calibrate_position():
     input('Hit any key to begin.')
     DAC.set_voltage(1024)
     input('Hit any key to mark desired upper threshold')
-    POS_THREHSOLD_HIGH = ADC.read_adc(ADC_CHANNEL, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
+    POS_THRESHOLD_HIGH = ADC.read_adc(ADC_CHANNEL, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
     DAC.set_voltage(0)
 
     DAC.set_voltage(0)
@@ -303,7 +307,7 @@ def calibrate_position():
     input('Hit any key to begin.')
     DAC.set_voltage(1024)
     input('Hit any key to mark desired lower threshold')
-    POS_THREHSOLD_LOW = ADC.read_adc(ADC_CHANNEL, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
+    POS_THRESHOLD_LOW = ADC.read_adc(ADC_CHANNEL, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
     DAC.set_voltage(0)
 
 def set_controller():
@@ -324,8 +328,8 @@ def test_configurations():
     print('Position Thresholds:')
     print('Absolute low: {}'.format(POS_LIMIT_LOW))
     print('Absolute high: {}'.format(POS_LIMIT_HIGH))
-    print('Set low: {}'.format(POS_THREHSOLD_LOW))
-    print('Set High: {}'.format(POS_THREHSOLD_HIGH))
+    print('Set low: {}'.format(POS_THRESHOLD_LOW))
+    print('Set High: {}'.format(POS_THRESHOLD_HIGH))
     GPIO.SET(RELAY_1_PIN,1)  # set dir as forward
     DAC_VAL = 1024
     DAC.set_voltage(DAC_VAL)
