@@ -22,6 +22,7 @@ import RPi.GPIO as GPIO
 STROKE = 12  # stroke length (INCHES)
 POT_VALUE = 10000  # 10k pot
 POT_VOLTAGE = 3.3  # connected to a 3V3 supply rail
+DISTANCE_PER_OHM = STOKE / POT_VALUE
 DISTANCE_PER_VOLT = STROKE / POT_VOLTAGE
 # (pos*POT_VALUE / ((1-pos)*POT_VALUE))
 
