@@ -4,15 +4,16 @@
 
 import sys
 import json
+from abc import ABC, abstractmethod
 from collections import deque
 from argparse import ArgumentParser
 from time import strftime, perf_counter, sleep
 
 # import hardware interfaces
 try:
+    import RPi.GPIO as GPIO
     from Adafruit_ADS1x15 import ADS1115
     from Adafruit_MCP4725 import MCP4725
-    import RPi.GPIO as GPIO
 except ImportError:
     from random import randint
     print('failed to load hardware interfaces, using dummy for general checking')
@@ -30,12 +31,54 @@ except ImportError:
         get_last_result = SOP
     class GPIO:
         """quick stub class for GPIO"""
-        BCM = IN = RISING = None
+        BCM = IN = RISING = OUT = None
         setmode = setup = add_event_detect = cleanup = remove_event_detect = NOP
 
 __version_info = (0,0,2)
 __version__ = '.'.join(map(str, __version_info))
 
+class ControllerBase(ABC):
+    def __init__(input_func, output_func, output_map, input_map, desired_reference=0):
+        self.get_input = input_func
+        self.in_map = input_map
+        self.send_output = output_func
+        self.out_map = output_map
+        self.out = 0
+        self.input = input_func()
+        self.ref = desired_reference
+        self.err = 0  # safer to start from 0
+
+    @abstractmethod
+    def process():
+        raise NotImplemented('Should be impemented by subclass')
+
+    def update(timestep):
+        self.input = self.get_input()
+        self.process(timestamp)
+        self.send_output(self.out)
+
+
+class ProportionalController(ControllerBase):
+    def __init__(Kp, *args, **kwargs):
+        self.kp = Kp
+        super().__init__(*args,**kwargs)
+
+    def process():
+        self.input = self.get_input()
+        error = self.ref - self.out
+
+
+class ProportionalDifferentialController(ControllerBase):
+    def __init__(Kp, Kd, *args, **kwargs):
+            self.kp = Kp
+            self.kd = Kd
+            super().__init__(*args,**kwargs)
+
+    def process():
+        pass
+
+PControl = ProportionalController
+PDControl = ProportionalDifferentialController
 
 # globals for routines & ISRs
 DATA = deque()
@@ -94,17 +137,37 @@ POS_LIMIT_HIGH = round(GLOBAL_VCC / ADC_MAX_VOLTAGE * ADC_MAX_LEVEL)
 # TODO: implement subparsers
 # input options parser
 parser = ArgumentParser() # 'elastocaloric testing'
-# parser.add_argument('-c', '--channel', type=int, choices=(1,2,3,4), help='ADC input channel', default=ADC_CHANNEL)
-parser.add_argument('-r', '--sample_rate', type=int, choices=(8, 16, 32, 64, 128, 250, 475, 860),
-                                    default=ADC_SAMPLE_RATE, help='Sample rate for ADC')
-# parser.add_argument('-a','--alert_pin', type=int, default=ADC_ALERT_PIN, help='RPI gpio pin number (eg: gpio27 -> "-a 27")')
-# parser.add_argument('-p','--polarity', type=int, choices=(-1,+1), default=ADC_POLARITY, help='ADC input polarity (1, -1)')
+subparsers = parser.add_subparsers(help='Action to take', dest='cmd')
+parser.add_argument('-V', '--version', action='version', version='%(prog)s {}'.format(__version__))
 parser.add_argument('-g','--gain', type=float, choices=(2/3,1,2,3,8,16), default=ADC_GAIN, help='ADC input polarity (1, -1)')
 parser.add_argument('-t','--timeout', type=int, default=5, help='set timout for loop')
+# parser.add_argument('-v','--verbose', action='count', default=0, help='verbosity')add_help
+parser.add_argument('-r', '--sample_rate', type=int, choices=(8, 16, 32, 64, 128, 250, 475, 860),
+                                    default=ADC_SAMPLE_RATE, help='Sample rate for ADC')
+# parser.add_argument('--help', action='help')
+
+test_adc_parser = subparsers.add_parser('test_adc', help='test adc functionality')
+test_dac_parser = subparsers.add_parser('test_dac', help='test dac functionality')
+test_cal_parser = subparsers.add_parser('test_cal', help='test calibartion routines')
+
+test_positioning_parser = subparsers.add_parser('test_pos',add_help=False, help='test controllable positing')
+test_positioning_parser.add_argument('-L','--low_min', type=int, default=POS_LIMIT_LOW)
+test_positioning_parser.add_argument('-l','--low_threshold', type=int, default=POS_THRESHOLD_LOW)
+test_positioning_parser.add_argument('-h','--high_threshold', type=int, default=POS_THRESHOLD_HIGH)
+test_positioning_parser.add_argument('-H','--high_max', type=int, default=POS_LIMIT_HIGH)
+test_positioning_parser.add_argument('--help', action='help', help='print help')
+pos_subparsers = test_positioning_parser.add_subparsers(help='specific position action to take', dest='action')
+pos_subparsers.add_parser('reset_min', help='reset to minimum extension')
+pos_subparsers.add_parser('reset_max', help='reset to max extension')
+goto_parser = pos_subparsers.add_parser('goto_pos', help='go to desired position')
+goto_parser.add_argument('position', type=int, default=ADC_LEVELS//2, help='position value between 0 and {}'.format(ADC_MAX_LEVEL))
+
 parser.add_argument('-o','--outfile', type=str, default=None, help='optional file to save results to')
 parser.add_argument('--config', type=str, default=None, help='optional configuration file')
-parser.add_argument('-V', '--version', action='version', version='%(prog)s {}'.format(__version__))
 
+# parser.add_argument('-c', '--channel', type=int, choices=(1,2,3,4), help='ADC input channel', default=ADC_CHANNEL)
+# parser.add_argument('-a','--alert_pin', type=int, default=ADC_ALERT_PIN, help='RPI gpio pin number (eg: gpio27 -> "-a 27")')
+# parser.add_argument('-p','--polarity', type=int, choices=(-1,+1), default=ADC_POLARITY, help='ADC input polarity (1, -1)')
 
 # human readable conversion functions
 def level2voltage(level):
@@ -129,6 +192,11 @@ def kg2lbs(kg):
 DAC = MCP4725()
 ADC = ADS1115()
 GPIO.setmode(GPIO.BCM)    # choose BCM or BOARD
+
+# setup pins
+GPIO.setup(ADC_ALERT_PIN, GPIO.IN)
+GPIO.setup(RELAY_1_PIN, GPIO.OUT)   # set GPIO17 as an output
+GPIO.setup(RELAY_2_PIN, GPIO.OUT)   # set GPIO22 as an output
 
 # GPIO ISRs
 def reset_min_pos_isr(channel):
@@ -196,7 +264,7 @@ def set_desired_pos(channel, pos):
             DAC_VAL = DEFAULT_DAC_VAL
             DAC.set_voltage(DAC_VAL)
     else:  # not far enough, go forward
-        GPIO.output(RELAY_1_PIN,1)
+        GPIO.output(RELAY_1_PIN, 1)
         if set_desired_pos.flag:
             DAC_VAL //=2
             DAC.set_voltage(DAC_VAL)
@@ -206,9 +274,12 @@ set_desired_pos.flag = False  # flag var to initiate homing in on target positio
 
 def diagnostic_adc_isr(channel):
     global DATA, LAST_TIME
+    # print('isr_called')
+    diagnostic_adc_isr.counter += 1
     ts = perf_counter()
     DATA.append((ADC.get_last_result(), ts-LAST_TIME))
     LAST_TIME = ts
+diagnostic_adc_isr.counter = 0
 
 def moniter_adc_isr(channel):
     global LOGFILE, LAST_TIME
@@ -229,32 +300,32 @@ def moniter_adc_isr(channel):
     """
     if value >= POS_THRESHOLD_HIGH:
         print('reverse')
-        GPIO.output(17, 0)
+        GPIO.output(RELAY_1_PIN, 0)
     elif value < POS_THRESHOLD_LOW:
         print('forward')
-        GPIO.output(17, 1)
+        GPIO.output(RELAY_1_PIN, 1)
 
 def position_test_isr(channel):
     value = ADC.get_last_result()
     if value >= POS_LIMIT_HIGH:
         print('Hit absolute max limit')
-        GPIO.output(17, 0)
+        GPIO.output(RELAY_1_PIN, 0)
         position_test_isr.flag = True
     elif value >= POS_THRESHOLD_HIGH and position_test_isr.flag:
         print('Hit designated max limit')
-        GPIO.output(17, 0)
+        GPIO.output(RELAY_1_PIN, 0)
         DAC.set_voltage(0)
         position_test_isr.flag = False
         # ADC.stop_adc()
     elif value <= POS_THRESHOLD_LOW and position_test_isr.flag:
         print('Hit desiginated min limit')
-        GPIO.output(17, 1)
+        GPIO.output(RELAY_1_PIN, 1)
         DAC.set_voltage(0)
         position_test_isr.flag = False
         # ADC.stop_adc()
     elif value <= POS_LIMIT_LOW:
         print('Hit absolute min limit')
-        GPIO.output(17, 1)
+        GPIO.output(RELAY_1_PIN, 1)
         position_test_isr.flag = True
 position_test_isr.flag = False
 
@@ -265,24 +336,18 @@ def calibrate_position():
     """
     calibrate system position thresholds
     """
-    # global POS_LIMIT_LOW, POS_THRESHOLD_LOW, POS_THRESHOLD_HIGH, POS_LIMIT_HIGH
+    global POS_LIMIT_LOW, POS_THRESHOLD_LOW, POS_THRESHOLD_HIGH, POS_LIMIT_HIGH
     print('Beginning calibration routine...')
-    GPIO.setup(ADC_ALERT_PIN, GPIO.IN)
-    GPIO.setup(RELAY_1_PIN, GPIO.OUT)   # set GPIO17 as an output
-    GPIO.setup(RELAY_2_PIN, GPIO.OUT)   # set GPIO22 as an output
 
     # TODO: figure out what relay 2 does
     GPIO.output(RELAY_2_PIN, 0)               # set GPIO22 to 0/GPIO.LOW/False
-
-    DAC.set_voltage(0)
     GPIO.output(RELAY_1_PIN, 1)               # set default to go forward
+    DAC.set_voltage(0)
     print('Setting upper threshold')
     input('Hit any key to begin.')
     DAC.set_voltage(1024)
     input('Hit any key to mark absolute upper threshold')
     POS_LIMIT_HIGH = ADC.read_adc(ADC_CHANNEL, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
-    DAC.set_voltage(0)
-
     DAC.set_voltage(0)
     GPIO.output(RELAY_1_PIN,0)  # prepare to go backwards
     print('Setting lower threshold')
@@ -291,16 +356,12 @@ def calibrate_position():
     input('Hit any key to mark absolute lower threshold')
     POS_LIMIT_LOW = ADC.read_adc(ADC_CHANNEL, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
     DAC.set_voltage(0)
-
-    DAC.set_voltage(0)
     GPIO.output(RELAY_1_PIN,1)  # prepare to go forward
     print('Setting upper desired threshold')
     input('Hit any key to begin.')
     DAC.set_voltage(1024)
     input('Hit any key to mark desired upper threshold')
     POS_THRESHOLD_HIGH = ADC.read_adc(ADC_CHANNEL, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
-    DAC.set_voltage(0)
-
     DAC.set_voltage(0)
     GPIO.output(RELAY_1_PIN,0)  # prepare to go backwards
     print('Setting lower desired threshold')
@@ -435,13 +496,52 @@ def cleanup_log(logfile):
 
 
 if __name__ == '__main__':
+# GPIO.setup(21,GPIO.IN,pull_up_down=GPIO.PUD_DOWN)
     args = vars(parser.parse_args())
     print(args)
-    if args['outfile'] is not None:
-        moniter_adc_file(**args)
-    if args['config'] is not None:
-        config = json.load(args['config'])
-        args.pop('config')
+    if args['cmd'] == 'test_adc':
+        test_adc(**args)
+    elif args['cmd'] == 'test_dac':
+        test_dac(**args)
+    elif args['cmd'] == 'test_pos':
+        global POS_LIMIT_LOW, POS_THRESHOLD_LOW, POS_THRESHOLD_HIGH, POS_LIMIT_HIGH
+        POS_LIMIT_LOW = args['low_min']
+        POS_LIMIT_HIGH = args['high_max']
+        POS_THRESHOLD_LOW = args['low_threshold']
+        POS_THRESHOLD_HIGH = args['high_threshold']
+        if cmd['action'] == 'reset_min':
+            GPIO.output(RELAY_1_PIN,0)
+            ADC.start_adc_comparator(ADC_CHANNEL, 2**16-1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
+            value = ADC.get_last_result()
+            if value <= POS_LIMIT_LOW:
+                print('already at min position')
+            else:
+                DAC.set_voltage(DEFAULT_DAC_VAL)
+                while value <= POS_LIMIT_LOW:
+                    GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.BOTH)
+                    value=ADC.get_last_result()
+                DAC.set_voltage(0)
+                ADC.stop_adc()
+                GPIO.remove_event_detect(ADC_ALERT_PIN)
+        elif cmd['action'] == 'reset_max':
+            GPIO.output(RELAY_1_PIN,1)
+            ADC.start_adc_comparator(ADC_CHANNEL, 2**16-1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
+            value = ADC.get_last_result()
+            if value >= POS_LIMIT_HIGH:
+                print('already at max position')
+            else:
+                DAC.set_voltage(DEFAULT_DAC_VAL)
+                while value <= POS_LIMIT_LOW:
+                    GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.BOTH)
+                    value=ADC.get_last_result()
+                DAC.set_voltage(0)
+                ADC.stop_adc()
+                GPIO.remove_event_detect(ADC_ALERT_PIN)
+            # print(value)
+
+
+
+        # moniter_adc_file(**args)
         # for entry,val in config.items():
             # global entry
             # entry = val
