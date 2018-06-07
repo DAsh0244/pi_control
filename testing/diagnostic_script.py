@@ -1,277 +1,29 @@
 #! /usr/bin/env python3
 
-#TODO: get good, then refactor x3
+# TODO: get good, then refactor x3
+
+from hal import *
+from controller import CONTROL_MAP
+from cli_parser import parser, cmds, actions
+from version import version as __version__
+from utils import load_config,save_config,edit_config
 
 import sys
 import json
-from abc import ABC, abstractmethod
 from collections import deque
-from argparse import ArgumentParser
 from time import strftime, perf_counter, sleep
 
-# import hardware interfaces
-try:
-    import RPi.GPIO as GPIO
-    from Adafruit_ADS1x15 import ADS1115
-    from Adafruit_MCP4725 import MCP4725
-except ImportError:
-    from random import randint
-    print('failed to load hardware interfaces, using dummy for general checking')
-    def NOP(*args, **kwargs):
-        """function that matches any prototype and proceeds to do nothing"""
-        pass
-    def SOP(*args, **kwargs):
-        return randint(0,2**15-1)
-    class MCP4725:
-        """quick stub class for mcp4725"""
-        set_voltage = NOP
-    class ADS1115:
-        """quick stub class for ADS1115"""
-        start_adc = start_adc_comparator = stop_adc  = NOP
-        get_last_result = SOP
-    class GPIO:
-        """quick stub class for GPIO"""
-        BCM = IN = RISING = OUT = None
-        setmode = setup = add_event_detect = cleanup = remove_event_detect = NOP
-
-__version_info = (0,0,2)
-__version__ = '.'.join(map(str, __version_info))
-
-class ControllerBase(ABC):
-    def __init__(input_func, output_func, output_map, input_map, desired_reference=0):
-        self.get_input = input_func
-        self.in_map = input_map
-        self.send_output = output_func
-        self.out_map = output_map
-        self.out = 0
-        self.input = input_func()
-        self.ref = desired_reference
-        self.err = 0  # safer to start from 0
-
-    @abstractmethod
-    def process():
-        raise NotImplemented('Should be impemented by subclass')
-
-    def update(timestep):
-        self.input = self.get_input()
-        self.process(timestamp)
-        self.send_output(self.out)
-
-
-class ProportionalController(ControllerBase):
-    def __init__(Kp, *args, **kwargs):
-        self.kp = Kp
-        super().__init__(*args,**kwargs)
-
-    def process():
-        self.input = self.get_input()
-        error = self.ref - self.out
-
-
-class ProportionalDifferentialController(ControllerBase):
-    def __init__(Kp, Kd, *args, **kwargs):
-            self.kp = Kp
-            self.kd = Kd
-            super().__init__(*args,**kwargs)
-
-    def process():
-        pass
-
-PControl = ProportionalController
-PDControl = ProportionalDifferentialController
 
 # globals for routines & ISRs
 DATA = deque()
 LAST_TIME = 0
-GLOBAL_VCC = 3.3
-control_map = {1: None, 2:PControl, 3:PDControl}
 CONTROLLER = None
+# GLOBAL_VCC = 3.3
 
-# pin designations
-RELAY_1_PIN = 17
-RELAY_2_PIN = 22
-ADC_ALERT_PIN = 21
-
-# DAC info
-DAC_BITS = 12
-DAC_LEVELS = 2**DAC_BITS
-DAC_VOLTAGE = GLOBAL_VCC
-DAC_STEP_SIZE = DAC_VOLTAGE/DAC_LEVELS
-DEFAULT_DAC_VAL = 1024
-DAC_VAL = 1024
-
-# ADC info
-ADC_GAIN = 1  # configurable, value must be one of: 2/3, 1, 2, 4, 8, 16
-ADC_CHANNEL = 1  # configurable, value must be one of: 0, 1, 2, 3
-ADC_SAMPLE_RATE = 128  # configurable, value must be: 8, 16, 32, 64, 128, 250, 475, 860
-ADC_SAMPLE_BITS = 16
-ADC_LEVELS = 2**ADC_SAMPLE_BITS
-ADC_PGA_MAP = {2/3 : 6.144,
-                                 1 : 4.096,
-                                 2 : 2.048,
-                                 4 : 1.024,
-                                 8 : 0.512,
-                                 16 : 0.256,
-                                }
-ADC_MAX_VOLTAGE = ADC_PGA_MAP[ADC_GAIN]
-ADC_STEP_SIZE = 2 * ADC_MAX_VOLTAGE / (2**16)  # volt/step
-ADC_MAX_LEVEL = 2**16 / 2 - 1  # hits ADC_MAX_VOLTAGE
-
-# Actuator information
-STROKE = 12  # stroke length (INCHES)
-POT_VALUE = 10000  # 10k pot
-POT_VOLTAGE = 3.3   # connected to a 3V3 supply rail
-DISTANCE_PER_VOLT = STROKE / POT_VOLTAGE
-ACTUATOR_INCHES_PER_SECOND = {35:{'None':2.00,'Full':1.38},
-                                                            50:{'None':1.14,'Full':0.83},
-                                                            150:{'None':0.37,'Full':0.28},
-                                                            }
-DISTANCE_PER_LEVEL = ADC_STEP_SIZE * DISTANCE_PER_VOLT  # inches / step
-
-# default Thresholds
-POS_LIMIT_LOW = 10
-POS_THRESHOLD_LOW = 750
-POS_THRESHOLD_HIGH = 17800
-POS_LIMIT_HIGH = round(GLOBAL_VCC / ADC_MAX_VOLTAGE * ADC_MAX_LEVEL)
-
-# TODO: implement subparsers
-# input options parser
-parser = ArgumentParser() # 'elastocaloric testing'
-subparsers = parser.add_subparsers(help='Action to take', dest='cmd')
-parser.add_argument('-V', '--version', action='version', version='%(prog)s {}'.format(__version__))
-parser.add_argument('-g','--gain', type=float, choices=(2/3,1,2,3,8,16), default=ADC_GAIN, help='ADC input polarity (1, -1)')
-parser.add_argument('-t','--timeout', type=int, default=5, help='set timout for loop')
-# parser.add_argument('-v','--verbose', action='count', default=0, help='verbosity')add_help
-parser.add_argument('-r', '--sample_rate', type=int, choices=(8, 16, 32, 64, 128, 250, 475, 860),
-                                    default=ADC_SAMPLE_RATE, help='Sample rate for ADC')
-# parser.add_argument('--help', action='help')
-
-test_adc_parser = subparsers.add_parser('test_adc', help='test adc functionality')
-test_dac_parser = subparsers.add_parser('test_dac', help='test dac functionality')
-test_cal_parser = subparsers.add_parser('test_cal', help='test calibration routines')
-
-test_positioning_parser = subparsers.add_parser('test_pos',add_help=False, help='test controllable positing')
-test_positioning_parser.add_argument('-L','--low_min', type=int, default=POS_LIMIT_LOW)
-test_positioning_parser.add_argument('-l','--low_threshold', type=int, default=POS_THRESHOLD_LOW)
-test_positioning_parser.add_argument('-h','--high_threshold', type=int, default=POS_THRESHOLD_HIGH)
-test_positioning_parser.add_argument('-H','--high_max', type=int, default=POS_LIMIT_HIGH)
-test_positioning_parser.add_argument('--help', action='help', help='print help')
-pos_subparsers = test_positioning_parser.add_subparsers(help='specific position action to take', dest='action')
-pos_subparsers.add_parser('reset_min', help='reset to minimum extension')
-pos_subparsers.add_parser('reset_max', help='reset to max extension')
-goto_parser = pos_subparsers.add_parser('goto_pos', help='go to desired position')
-goto_parser.add_argument('position', type=int, default=ADC_LEVELS//2, help='position value between 0 and {}'.format(ADC_MAX_LEVEL))
-
-parser.add_argument('-o','--outfile', type=str, default=None, help='optional file to save results to')
-parser.add_argument('--config', type=str, default=None, help='optional configuration file')
-
-# parser.add_argument('-c', '--channel', type=int, choices=(1,2,3,4), help='ADC input channel', default=ADC_CHANNEL)
-# parser.add_argument('-a','--alert_pin', type=int, default=ADC_ALERT_PIN, help='RPI gpio pin number (eg: gpio27 -> "-a 27")')
-# parser.add_argument('-p','--polarity', type=int, choices=(-1,+1), default=ADC_POLARITY, help='ADC input polarity (1, -1)')
-
-# human readable conversion functions
-def level2voltage(level):
-    return level * ADC_STEP_SIZE
-
-def level2position(level):
-    return level * DISTANCE_PER_LEVEL
-
-def mm2in(mmlength):
-    return mmlength * 0.0393701
-
-def in2mm(inlength):
-    return inlength * 25.4
-
-def lbs2kg(lbs):
-    return lbs * 0.453592
-
-def kg2lbs(kg):
-    return kg * 2.20462
-
-# HW abstractions
-DAC = MCP4725()
-ADC = ADS1115()
-GPIO.setmode(GPIO.BCM)    # choose BCM or BOARD
-
-# setup pins
-GPIO.setup(ADC_ALERT_PIN, GPIO.IN)
-GPIO.setup(RELAY_1_PIN, GPIO.OUT)   # set GPIO17 as an output
-GPIO.setup(RELAY_2_PIN, GPIO.OUT)   # set GPIO22 as an output
+hal_init()
+# DAC, ADC are already imported
 
 # GPIO ISRs
-def reset_min_pos_isr(channel):
-    """
-    Resets actuator back to min threshold. Sets direction relay to go forward.
-
-    To use:
-    1. register ISR callback
-    2. start motor backward
-    3. start ADC monitoring
-    """
-    value = ADC.get_last_result()
-    # print(value)
-    if value <= POS_LIMIT_LOW:  # Hit limit -- Done, derigester and stop
-        GPIO.output(RELAY_1_PIN, 1)
-        DAC.set_voltage(0)
-        GPIO.remove_event_detect(channel)
-        ADC.stop_adc()
-
-def reset_max_pos_isr(channel):
-    """
-    Resets actuator back to max threshold. Sets direction relay to go backward.
-
-    To use:
-    1. register ISR callback
-    2. start the motor forward
-    3. start ADC monitoring
-    """
-    value = ADC.get_last_result()
-    # print(value)
-    if value >= POS_LIMIT_HIGH:  # Hit limit -- Done, derigester and stop
-        GPIO.output(RELAY_1_PIN, 0)
-        DAC.set_voltage(0)
-        GPIO.remove_event_detect(channel)
-        ADC.stop_adc()
-
-def set_desired_pos(channel, pos):
-    """
-    Sets actuator to desired threshold.
-    should be called via a lambda function
-    eg:
-    GPIO.add_event_detect(channel, GPIO.RISING, callback=lambda ch:set_desired_pos(ch,<DESIRED_POSITION>))
-
-    To use:
-    1. register ISR callback
-    2. start the motor in a direction at some speed, speed will be decreased to make positing as accurate as possible
-    3. start ADC monitoring
-    """
-    value = ADC.get_last_result()
-    # print(value)
-    if DAC_VAL == 0:
-        print('target achieved')
-        print('desired', pos)
-        print('achieved', value)
-        print('error', abs(pos-value))
-        DAC.set_voltage(0)
-        GPIO.remove_event_detect(channel)
-        ADC.stop_adc()
-    elif value >= pos:  # too far, go back
-        GPIO.output(RELAY_1_PIN, 0)
-        if  set_desired_pos.flag:  # slow down
-            DAC_VAL //=2
-            DAC.set_voltage(DAC_VAL)
-        else:
-            DAC_VAL = DEFAULT_DAC_VAL
-            DAC.set_voltage(DAC_VAL)
-    else:  # not far enough, go forward
-        GPIO.output(RELAY_1_PIN, 1)
-        if set_desired_pos.flag:
-            DAC_VAL //=2
-            DAC.set_voltage(DAC_VAL)
-        else:
-            DAC_VAL = DEFAULT_DAC_VAL
-set_desired_pos.flag = False  # flag var to initiate homing in on target position
-
 def diagnostic_adc_isr(channel):
     global DATA, LAST_TIME
     # print('isr_called')
@@ -305,9 +57,72 @@ def moniter_adc_isr(channel):
         print('forward')
         GPIO.output(RELAY_1_PIN, 1)
 
-
-
 # routines
+
+# general use routines
+def reset_max():
+    GPIO.output(RELAY_1_PIN,1)
+    ADC.start_adc_comparator(ADC_CHANNEL, 2**16-1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
+    value = ADC.get_last_result()
+    if value >= POS_LIMIT_HIGH:
+        print('already at max position')
+    else:
+        DAC.set_voltage(DEFAULT_DAC_VAL)
+        while value <= POS_LIMIT_LOW:
+            GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.BOTH)
+            value=ADC.get_last_result()
+        DAC.set_voltage(0)
+        ADC.stop_adc()
+        GPIO.remove_event_detect(ADC_ALERT_PIN)
+
+def reset_min():
+    GPIO.output(RELAY_1_PIN,0)
+    ADC.start_adc_comparator(ADC_CHANNEL, 2**16-1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
+    value = ADC.get_last_result()
+    if value <= POS_LIMIT_LOW:
+        print('already at min position')
+    else:
+        DAC.set_voltage(DEFAULT_DAC_VAL)
+        while value <= POS_LIMIT_LOW:
+            GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.BOTH)
+            value=ADC.get_last_result()
+        DAC.set_voltage(0)
+        ADC.stop_adc()
+        GPIO.remove_event_detect(ADC_ALERT_PIN)
+
+def set_position(position):
+    flag = False
+    value = ADC.get_last_result()
+    print(value)
+    if value == position:
+        return
+    if value >= position:
+        set_actuator_dir('backward')
+    else: #  value < position
+        set_actuator_dir('forward')
+    DAC_VAL = DEFAULT_DAC_VAL
+    DAC.set_voltage(DAC_VAL)
+    while True:
+        GPIO.wait_for_edge(ADC_ALERT_PIN,GPIO.FALLING)
+        value = ADC.get_last_result()
+        print(DAC_VAL, value)
+        if DAC_VAL == 0:
+            print('target achieved')
+            print('desired', position)
+            print('achieved', value)
+            print('error', position-value)
+            ADC.stop_adc()
+            break
+        elif value >= position:  # too far, go back
+            # set_actuator_dir('backward')
+            GPIO.output(RELAY_1_PIN, 0)
+            DAC_VAL >>= 1
+            DAC.set_voltage(DAC_VAL)
+        else:  # not far enough, go forward
+            # set_actuator_dir('forward')
+            GPIO.output(RELAY_1_PIN, 1)
+            DAC_VAL >>= 1
+            DAC.set_voltage(DAC_VAL)
 
 # calibration routines
 def calibrate_position():
@@ -316,38 +131,42 @@ def calibrate_position():
     """
     global POS_LIMIT_LOW, POS_THRESHOLD_LOW, POS_THRESHOLD_HIGH, POS_LIMIT_HIGH
     print('Beginning calibration routine...')
-
     # TODO: figure out what relay 2 does
     GPIO.output(RELAY_2_PIN, 0)               # set GPIO22 to 0/GPIO.LOW/False
     GPIO.output(RELAY_1_PIN, 1)               # set default to go forward
     DAC.set_voltage(0)
     print('Setting upper threshold')
-    input('Hit any key to begin.')
+    input('Hit enter/return to begin.')
     DAC.set_voltage(1024)
-    input('Hit any key to mark absolute upper threshold')
+    input('Hit enter/return to mark absolute upper threshold')
     POS_LIMIT_HIGH = ADC.read_adc(ADC_CHANNEL, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
     DAC.set_voltage(0)
+    print(POS_LIMIT_HIGH)
     GPIO.output(RELAY_1_PIN,0)  # prepare to go backwards
     print('Setting lower threshold')
-    input('Hit any key to begin.')
+    input('Hit enter/return to begin.')
     DAC.set_voltage(1024)
-    input('Hit any key to mark absolute lower threshold')
+    input('Hit enter/return to mark absolute lower threshold')
     POS_LIMIT_LOW = ADC.read_adc(ADC_CHANNEL, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
     DAC.set_voltage(0)
+    print(POS_LIMIT_LOW)
     GPIO.output(RELAY_1_PIN,1)  # prepare to go forward
     print('Setting upper desired threshold')
-    input('Hit any key to begin.')
+    input('Hit enter/return  to begin.')
     DAC.set_voltage(1024)
-    input('Hit any key to mark desired upper threshold')
+    input('Hit enter/return to mark desired upper threshold')
     POS_THRESHOLD_HIGH = ADC.read_adc(ADC_CHANNEL, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
     DAC.set_voltage(0)
+    print(POS_THRESHOLD_HIGH)
     GPIO.output(RELAY_1_PIN,0)  # prepare to go backwards
     print('Setting lower desired threshold')
-    input('Hit any key to begin.')
+    input('Hit enter/return  to begin.')
     DAC.set_voltage(1024)
-    input('Hit any key to mark desired lower threshold')
+    input('Hit enter/return to mark desired lower threshold')
     POS_THRESHOLD_LOW = ADC.read_adc(ADC_CHANNEL, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
     DAC.set_voltage(0)
+    print(POS_THRESHOLD_LOW)
+
 
 def set_controller():
     valid_choices = set(map(str,control_map.keys()))
@@ -359,7 +178,8 @@ def set_controller():
     choice = input('Enter controller choice: ').strip()
     while choice not in valid_choices:
         choice = input('Enter controller choice: ').strip()
-    CONTROLLER = control_map[int(choice)]
+    CONTROLLER = CONTROL_MAP[int(choice)]
+
 
 def test_configurations():
     global DAC_VAL
@@ -371,54 +191,49 @@ def test_configurations():
     print('Absolute high: {}'.format(POS_LIMIT_HIGH))
     print('Set low: {}'.format(POS_THRESHOLD_LOW))
     print('Set High: {}'.format(POS_THRESHOLD_HIGH))
-    GPIO.SET(RELAY_1_PIN,1)  # set dir as forward
+    GPIO.output(RELAY_1_PIN,1)  # set dir as forward
     DAC_VAL = 1024
     DAC.set_voltage(DAC_VAL)
     ADC.start_adc_comparator(ADC_CHANNEL, 2**16-1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
     value = ADC.get_last_result()
     while not flag:
         if value >= POS_LIMIT_HIGH:
-            print('Hit absolute max limit')
+            print('Hit absolute max limit', value)
             GPIO.output(RELAY_1_PIN, 0)
             flag = True
-        GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.BOTH)
+        GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.FALLING)
         value = ADC.get_last_result()
     flag = False
     value = ADC.get_last_result()
     while not flag:
         if value <= POS_LIMIT_LOW:
-            print('Hit absolute min limit')
+            print('Hit absolute min limit', value)
             GPIO.output(RELAY_1_PIN, 1)
             flag = True
-        GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.BOTH)
+        GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.FALLING)
         value = ADC.get_last_result()
     flag = False
     value = ADC.get_last_result()
     while not flag:
         if value >= POS_THRESHOLD_HIGH:
-            print('Hit designated max limit')
+            print('Hit designated max limit', value)
             GPIO.output(RELAY_1_PIN, 0)
             flag = True
             # ADC.stop_adc()
+        GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.FALLING)
+        value = ADC.get_last_result()
     flag = False
     value = ADC.get_last_result()
     while not flag:
         if value <= POS_THRESHOLD_LOW:
             DAC.set_voltage(0)
-            print('Hit desiginated min limit')
+            print('Hit desiginated min limit', value)
             GPIO.output(RELAY_1_PIN, 1)
             flag = True
-            # ADC.stop_adc()
-
-
-def load_config(cfg_path):
-    pass
-
-def save_cfg(cfg_path):
-    pass
-
-def edit_config(cfg_path):
-    pass
+        GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.FALLING)
+        value = ADC.get_last_result()
+    DAC.set_voltage(0)
+    ADC.stop_adc()
 
 
 def calibrate():
@@ -448,7 +263,6 @@ def calibrate():
     """
     # calibrate thresholds:
     calibrate_position()
-    # NOT IMPLEMENTED YET
     # set control scheme:
     # set_controller()
     # test:
@@ -471,7 +285,7 @@ def test_adc(alert_pin=ADC_ALERT_PIN, channel=ADC_CHANNEL, sample_rate=ADC_SAMPL
     max_voltage = ADC_PGA_MAP[gain]
     step_size = abs(max_voltage / ADC_LEVELS)
     GPIO.setup(alert_pin, GPIO.IN)
-    GPIO.add_event_detect(alert_pin, GPIO.BOTH, callback=diagnostic_adc_isr)  # may want to look into GPIO.RISING || GPIO.FALLING
+    GPIO.add_event_detect(alert_pin, GPIO.FALLING, callback=diagnostic_adc_isr)  # may want to look into GPIO.RISING || GPIO.FALLING
     # start = perf_counter()
     print('starting loop')
     LAST_TIME=perf_counter()
@@ -481,14 +295,13 @@ def test_adc(alert_pin=ADC_ALERT_PIN, channel=ADC_CHANNEL, sample_rate=ADC_SAMPL
         # pass
     ADC.stop_adc()
 
+
 def test_dac(**kwargs):
     raise NotImplementedError('DAC testing not yet implemented')
 
 # acquisition routines
 def moniter_adc_file(outfile, timeout, **kwargs):
     global LOGFILE
-    GPIO.setup(17, GPIO.OUT)           # set GPIO17 as an output
-    GPIO.setup(22, GPIO.OUT)           # set GPIO22 as an output
     GPIO.output(22, 0)         # set GPIO22 to 1/GPIO.HIGH/True
     LOGFILE = open(outfile, 'w')
     GPIO.setup(ADC_ALERT_PIN, GPIO.IN)
@@ -500,57 +313,33 @@ def moniter_adc_file(outfile, timeout, **kwargs):
     LOGFILE.close()
     DAC.set_voltage(0)
 
-# until funcs
-def cleanup_log(logfile):
-    """
-    base cleanup function that provides basic file cleanup for formatting things like timesteps
-    """
-    raise NotImplementedError()
 
+def dispatcher(args):
+    if args['cmd'] == 'test_adc':
+        test_adc(**args)
+    elif args['cmd'] == 'test_dac':
+        test_dac(**args)
+    elif args['cmd'] == 'test_cal':
+        calibrate()
+    elif args['cmd'] == 'test_pos':
+        # global POS_LIMIT_LOW, POS_THRESHOLD_LOW, POS_THRESHOLD_HIGH, POS_LIMIT_HIGH
+        POS_LIMIT_LOW = args['low_min']
+        POS_LIMIT_HIGH = args['high_max']
+        POS_THRESHOLD_LOW = args['low_threshold']
+        POS_THRESHOLD_HIGH = args['high_threshold']
+        if args['action'] == 'reset_min':
+            reset_min()
+        elif args['action'] == 'reset_max':
+            reset_max()
+        elif args['action'] == 'goto_pos':
+            set_position(args['position'])
 
 if __name__ == '__main__':
 # GPIO.setup(21,GPIO.IN,pull_up_down=GPIO.PUD_DOWN)
     args = vars(parser.parse_args())
     print(args)
-    if args['cmd'] == 'test_adc':
-        test_adc(**args)
-    elif args['cmd'] == 'test_dac':
-        test_dac(**args)
-    elif argsp['cmd'] == 'test_cal':
-        calibrate()
-    elif args['cmd'] == 'test_pos':
-        global POS_LIMIT_LOW, POS_THRESHOLD_LOW, POS_THRESHOLD_HIGH, POS_LIMIT_HIGH
-        POS_LIMIT_LOW = args['low_min']
-        POS_LIMIT_HIGH = args['high_max']
-        POS_THRESHOLD_LOW = args['low_threshold']
-        POS_THRESHOLD_HIGH = args['high_threshold']
-        if cmd['action'] == 'reset_min':
-            GPIO.output(RELAY_1_PIN,0)
-            ADC.start_adc_comparator(ADC_CHANNEL, 2**16-1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
-            value = ADC.get_last_result()
-            if value <= POS_LIMIT_LOW:
-                print('already at min position')
-            else:
-                DAC.set_voltage(DEFAULT_DAC_VAL)
-                while value <= POS_LIMIT_LOW:
-                    GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.BOTH)
-                    value=ADC.get_last_result()
-                DAC.set_voltage(0)
-                ADC.stop_adc()
-                GPIO.remove_event_detect(ADC_ALERT_PIN)
-        elif cmd['action'] == 'reset_max':
-            GPIO.output(RELAY_1_PIN,1)
-            ADC.start_adc_comparator(ADC_CHANNEL, 2**16-1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
-            value = ADC.get_last_result()
-            if value >= POS_LIMIT_HIGH:
-                print('already at max position')
-            else:
-                DAC.set_voltage(DEFAULT_DAC_VAL)
-                while value <= POS_LIMIT_LOW:
-                    GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.BOTH)
-                    value=ADC.get_last_result()
-                DAC.set_voltage(0)
-                ADC.stop_adc()
-                GPIO.remove_event_detect(ADC_ALERT_PIN)
+    dispatcher(args)
+    # ensure stop
     DAC.set_voltage(0)
+    ADC.stop_adc()
     GPIO.cleanup()

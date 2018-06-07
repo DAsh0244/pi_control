@@ -41,10 +41,11 @@ ADC_MAP = {2/3 : 6.144,
                      8 : 0.512,
                      16 : 0.256,
                     }
-ADC_POLARITY = 1  # 1 for positive rail, -1 for negative rail
 ADC_GAIN = 1
-ADC_MAX_VOLTAGE = ADC_POLARITY * ADC_MAP[ADC_GAIN]
-ADC_STEP_SIZE = abs(ADC_MAX_VOLTAGE / (2**ADC_BITS))  # volt/step
+ADC_MAX_VOLTAGE = ADC_PGA_MAP[ADC_GAIN]
+ADC_STEP_SIZE = 2 * ADC_MAX_VOLTAGE / (2**16)  # volt/step
+ADC_MAX_LEVEL = 2**16 / 2 - 1  # hits ADC_MAX_VOLTAGE
+
 ADC_RESPONSE_TIME = 1/ADC_SAMPLE_RATE
 
 # potentiometer parameters
