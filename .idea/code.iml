@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/testing" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/diagnostic" />
+      <excludeFolder url="file://$MODULE_DIR$/legacy" />
+      <excludeFolder url="file://$MODULE_DIR$/original" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="R Skeletons" level="project" />
+    <orderEntry type="library" name="R User Skeletons" level="project" />
+  </component>
+  <component name="TestRunnerService">
+    <option name="projectConfiguration" value="Nosetests" />
+    <option name="PROJECT_TEST_RUNNER" value="Nosetests" />
+  </component>
+</module>
