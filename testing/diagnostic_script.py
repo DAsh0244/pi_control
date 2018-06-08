@@ -13,7 +13,6 @@ from controller import CONTROL_MAP
 # from version import version as __version__
 from cli_parser import parser, cmds, actions
 
-
 # globals for routines & ISRs
 DATA = deque()
 LAST_TIME = 0
@@ -21,10 +20,7 @@ CONTROLLER = None
 LOGFILE = None
 # GLOBAL_VCC = 3.3
 
-hal_init()
-
-
-# DAC, ADC are already imported
+hal_init()  # setup hw
 
 
 # GPIO ISRs
@@ -112,6 +108,7 @@ def set_position(position):
         set_actuator_dir('backward')
     else:  # value < position
         set_actuator_dir('forward')
+    global DAC_VAL
     DAC_VAL = DEFAULT_DAC_VAL
     DAC.set_voltage(DAC_VAL)
     while True:
@@ -205,6 +202,7 @@ def test_configurations():
     print('Set low: {}'.format(POS_THRESHOLD_LOW))
     print('Set High: {}'.format(POS_THRESHOLD_HIGH))
     GPIO.output(RELAY_1_PIN, 1)  # set dir as forward
+    global DAC_VAL
     DAC_VAL = 1024
     DAC.set_voltage(DAC_VAL)
     ADC.start_adc_comparator(ADC_CHANNEL, 2 ** 16 - 1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
@@ -298,6 +296,7 @@ def calibrate():
 
 
 # diagnostic_routines
+# noinspection PyUnusedLocal
 def test_adc(alert_pin=ADC_ALERT_PIN, channel=ADC_CHANNEL, sample_rate=ADC_SAMPLE_RATE,
              gain=ADC_GAIN, timeout=5, **kwargs):
     # max_voltage = ADC_PGA_MAP[gain]
@@ -319,6 +318,7 @@ def test_dac(**kwargs):
 
 
 # acquisition routines
+# noinspection PyUnusedLocal
 def monitor_adc_file(outfile, timeout, **kwargs):
     global LOGFILE
     GPIO.output(22, 0)  # set GPIO22 to 1/GPIO.HIGH/True
@@ -365,43 +365,43 @@ def edit_config(cfg_path):
     pass
 
 
-def dispatcher(args):
-    if args['config'] is not None:
+def dispatcher(arg_dict):
+    if arg_dict['config'] is not None:
         global ADC_SAMPLE_RATE, TIMEOUT, OUTFILE
-        cfg = load_config(args['config'])
-        args.update({'timeout': cfg['TIMEOUT'] or args['timeout'],
-                     'sample_rate': cfg['ADC_SAMPLE_RATE'] or args['sample_rate'],
-                     'outfile': cfg['OUTFILE'] or args['outfile'],
-                     'units': cfg['UNITS'] or args['units'],
-                     'high_max': cfg['POS_LIMIT_HIGH'] or args['high_max'],
-                     'low_min': cfg['POS_LIMIT_LOW'] or args['low_min'],
-                     'high_threshold': cfg['POS_THRESHOLD_HIGH'] or args['high_threshold'],
-                     'low_threshold': cfg['POS_THRESHOLD_LOW'] or args['low_threshold'],
-                     })
-        ADC_SAMPLE_RATE = args['sample_rate']
-        TIMEOUT = args['timeout']
-        OUTFILE = args['outfile']
-    print(args)
-    if args['cmd'] == cmds['TEST_ADC']:
+        cfg = load_config(arg_dict['config'])
+        arg_dict.update({'timeout': cfg['TIMEOUT'] or arg_dict['timeout'],
+                         'sample_rate': cfg['ADC_SAMPLE_RATE'] or arg_dict['sample_rate'],
+                         'outfile': cfg['OUTFILE'] or arg_dict['outfile'],
+                         'units': cfg['UNITS'] or arg_dict['units'],
+                         'high_max': cfg['POS_LIMIT_HIGH'] or arg_dict['high_max'],
+                         'low_min': cfg['POS_LIMIT_LOW'] or arg_dict['low_min'],
+                         'high_threshold': cfg['POS_THRESHOLD_HIGH'] or arg_dict['high_threshold'],
+                         'low_threshold': cfg['POS_THRESHOLD_LOW'] or arg_dict['low_threshold'],
+                         })
+        ADC_SAMPLE_RATE = arg_dict['sample_rate']
+        TIMEOUT = arg_dict['timeout']
+        OUTFILE = arg_dict['outfile']
+    print(arg_dict)
+    if arg_dict['cmd'] == cmds['TEST_ADC']:
         test_adc()
-    elif args['cmd'] == cmds['TEST_DAC']:
-        test_dac(**args)
-    elif args['cmd'] == cmds['TEST_CAL']:
+    elif arg_dict['cmd'] == cmds['TEST_DAC']:
+        test_dac(**arg_dict)
+    elif arg_dict['cmd'] == cmds['TEST_CAL']:
         calibrate()
-    elif args['cmd'] == cmds['TEST_POS']:
+    elif arg_dict['cmd'] == cmds['TEST_POS']:
         global POS_LIMIT_LOW, POS_THRESHOLD_LOW, POS_THRESHOLD_HIGH, POS_LIMIT_HIGH
-        POS_LIMIT_LOW = args.pop('low_min')
-        POS_LIMIT_HIGH = args.pop('high_max')
-        POS_THRESHOLD_LOW = args.pop('low_threshold')
-        POS_THRESHOLD_HIGH = args['high_threshold']
-        if args['action'] == actions['RESET_MIN']:
+        POS_LIMIT_LOW = arg_dict.pop('low_min')
+        POS_LIMIT_HIGH = arg_dict.pop('high_max')
+        POS_THRESHOLD_LOW = arg_dict.pop('low_threshold')
+        POS_THRESHOLD_HIGH = arg_dict['high_threshold']
+        if arg_dict['action'] == actions['RESET_MIN']:
             reset_min()
-        elif args['action'] == actions['RESET_MAX']:
+        elif arg_dict['action'] == actions['RESET_MAX']:
             reset_max()
-        elif args['action'] == actions['GOTO_POS']:
-            set_position(args['position'])
-    elif args['cmd'] == cmds['RUN_ACQ']:
-        monitor_adc_file(**args)
+        elif arg_dict['action'] == actions['GOTO_POS']:
+            set_position(arg_dict['position'])
+    elif arg_dict['cmd'] == cmds['RUN_ACQ']:
+        monitor_adc_file(**arg_dict)
 
 
 if __name__ == '__main__':
