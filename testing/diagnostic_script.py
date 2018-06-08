@@ -2,16 +2,17 @@
 
 # TODO: get good, then refactor x3
 
-from hal import *
-from controller import CONTROL_MAP
-from cli_parser import parser, cmds, actions
-from version import version as __version__
-
 import os
-import sys
+# import sys
 import json
 from collections import deque
 from time import strftime, perf_counter, sleep
+
+from hal import *
+from controller import CONTROL_MAP
+# from version import version as __version__
+from cli_parser import parser, cmds, actions
+
 
 # globals for routines & ISRs
 DATA = deque()
@@ -322,6 +323,7 @@ def monitor_adc_file(outfile, timeout, **kwargs):
     global LOGFILE
     GPIO.output(22, 0)  # set GPIO22 to 1/GPIO.HIGH/True
     LOGFILE = open(outfile, 'w')
+    LOGFILE.write('timestamp,{}\n'.format(strftime("%Y-%m-%d %H:%M:%S")))
     GPIO.setup(ADC_ALERT_PIN, GPIO.IN)
     GPIO.add_event_detect(ADC_ALERT_PIN, GPIO.FALLING, callback=monitor_adc_isr)
     ADC.start_adc_comparator(ADC_CHANNEL, 2 ** 16 - 1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)

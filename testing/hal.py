@@ -194,9 +194,11 @@ POS_LIMIT_HIGH = round(GLOBAL_VCC / ADC_MAX_VOLTAGE * ADC_MAX_LEVEL)
 
 # HW abstractions
 DAC = MCP4725()
+# noinspection PyRedeclaration
 ADC = ADS1115()
 
 
+# noinspection PyCallByClass
 def hal_init():
     # choose BCM or BOARD
     GPIO.setmode(GPIO.BCM)
@@ -206,10 +208,12 @@ def hal_init():
     GPIO.setup(RELAY_2_PIN, GPIO.OUT)  # set GPIO22 as an output
 
 
+# noinspection PyCallByClass
 def wait_for_sample():
     GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.FALLING)
 
 
+# noinspection PyCallByClass
 def set_actuator_dir(direction):
     if direction == 'forward':
         GPIO.output(RELAY_1_PIN, GPIO.HIGH)
