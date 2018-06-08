@@ -6,8 +6,8 @@ from hal import *
 from controller import CONTROL_MAP
 from cli_parser import parser, cmds, actions
 from version import version as __version__
-from utils import load_config,save_config,edit_config
 
+import os
 import sys
 import json
 from collections import deque
@@ -268,17 +268,20 @@ def calibrate():
     # test:
     test_configurations()
     # reconfigure -- optional
-    edit = input('edit configuration? (y/n): ').strip().lower()
-    while edit not in ('y','n'):
-        edit = input('edit configuration? (y/n): ').strip().lower()
-    if edit == 'y':
-        edit_config()
+    # edit = input('edit configuration? (y/n): ').strip().lower()
+    # while edit not in ('y','n'):
+        # edit = input('edit configuration? (y/n): ').strip().lower()
+    # if edit == 'y':
+        # edit_config()
     # confirm
     confirm = input ('confirm settings? (y/n): ').strip().lower()
     while confirm.lower() not in ('y','n'):
         confirm = input ('confirm settings? (y/n): ').strip().lower()
     if confirm == 'y':
-        save_config()
+        outfile = input ('enter valid config file name: ').strip()
+        while not os.access(os.path.dirname(outfile), os.W_OK):
+            outfile = input ('enter valid config file name: ').strip()
+        save_config(outfile)
 
 # diagnostic_routines
 def test_adc(alert_pin=ADC_ALERT_PIN, channel=ADC_CHANNEL, sample_rate=ADC_SAMPLE_RATE, gain=ADC_GAIN,  timeout=5, **kwargs):
@@ -305,7 +308,7 @@ def moniter_adc_file(outfile, timeout, **kwargs):
     GPIO.output(22, 0)         # set GPIO22 to 1/GPIO.HIGH/True
     LOGFILE = open(outfile, 'w')
     GPIO.setup(ADC_ALERT_PIN, GPIO.IN)
-    GPIO.add_event_detect(ADC_ALERT_PIN, GPIO.BOTH, callback=moniter_adc_isr)  # may want to look into GPIO.RISING || GPIO.FALLING
+    GPIO.add_event_detect(ADC_ALERT_PIN, GPIO.FALLING, callback=moniter_adc_isr)  # may want to look into GPIO.RISING || GPIO.FALLING
     ADC.start_adc_comparator(ADC_CHANNEL, 2**16-1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
     DAC.set_voltage(2048)
     sleep(timeout)
@@ -313,31 +316,75 @@ def moniter_adc_file(outfile, timeout, **kwargs):
     LOGFILE.close()
     DAC.set_voltage(0)
 
+# util funcs
+# config handling
+def load_config(cfg_path):
+    with open(cfg_path,'r') as cfg_file:
+        config = json.load(cfg_file)
+    for key,val in config.items():
+        globals()[key] = val
+    return config
+    from pprint import pprint
+    pprint(globals())
+
+def save_config(cfg_path):
+    with open(cfg_path,'w') as cfg_file:
+        json.dump({'POS_LIMIT_LOW':POS_LIMIT_LOW,
+                            'POS_LIMIT_HIGH': POS_LIMIT_HIGH,
+                            'POS_THRESHOLD_LOW': POS_THRESHOLD_LOW,
+                            'POS_THRESHOLD_HIGH':POS_THRESHOLD_HIGH,
+                            'ADC_SAMPLE_RATE':ADC_SAMPLE_RATE,
+                            'TIMEOUT':TIMEOUT,
+                            'UNITS': UNITS,
+                            'OUTFILE':OUTFILE,
+                            },
+                             cfg_file
+                         )
+
+def edit_config(cfg_path):
+    pass
 
 def dispatcher(args):
-    if args['cmd'] == 'test_adc':
+    if args['config'] is not None:
+        cfg = load_config(args['config'])
+        args.update({'timeout':cfg['TIMEOUT'] or args['timeout'],
+                               'sample_rate':cfg['ADC_SAMPLE_RATE'] or args['sample_rate'],
+                               'outfile':cfg['OUTFILE'] or args['outfile'],
+                               'units':cfg['UNITS'] or args['units'],
+                               'high_max':cfg['POS_LIMIT_HIGH'] or args['high_max'],
+                               'low_min':cfg['POS_LIMIT_LOW'] or args['low_min'],
+                               'high_threshold':cfg['POS_THRESHOLD_HIGH'] or args['high_threshold'],
+                               'low_threshold':cfg['POS_THRESHOLD_LOW'] or args['low_threshold'],
+                                })
+        ADC_SAMPLE_RATE = args['sample_rate']
+        TIMEOUT = args['timeout']
+        OUTFILE = args['outfile']
+    print(args)
+    if args['cmd'] == cmds['TEST_ADC']:
         test_adc(**args)
-    elif args['cmd'] == 'test_dac':
+    elif args['cmd'] == cmds['TEST_DAC']:
         test_dac(**args)
-    elif args['cmd'] == 'test_cal':
+    elif args['cmd'] == cmds['TEST_CAL']:
         calibrate()
-    elif args['cmd'] == 'test_pos':
+    elif args['cmd'] == cmds['TEST_POS']:
         # global POS_LIMIT_LOW, POS_THRESHOLD_LOW, POS_THRESHOLD_HIGH, POS_LIMIT_HIGH
-        POS_LIMIT_LOW = args['low_min']
-        POS_LIMIT_HIGH = args['high_max']
-        POS_THRESHOLD_LOW = args['low_threshold']
+        POS_LIMIT_LOW = args.pop('low_min')
+        POS_LIMIT_HIGH = args.pop('high_max')
+        POS_THRESHOLD_LOW = args.pop('low_threshold')
         POS_THRESHOLD_HIGH = args['high_threshold']
-        if args['action'] == 'reset_min':
+        if args['action'] == actions['RESET_MIN']:
             reset_min()
-        elif args['action'] == 'reset_max':
+        elif args['action'] == actions['RESET_MAX']:
             reset_max()
-        elif args['action'] == 'goto_pos':
+        elif args['action'] == actions['GOTO_POS']:
             set_position(args['position'])
+    elif args['cmd'] == cmds['RUN_ACQ']:
+        moniter_adc_file(**args)
 
 if __name__ == '__main__':
 # GPIO.setup(21,GPIO.IN,pull_up_down=GPIO.PUD_DOWN)
     args = vars(parser.parse_args())
-    print(args)
+    # print(args)
     dispatcher(args)
     # ensure stop
     DAC.set_voltage(0)

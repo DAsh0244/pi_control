@@ -1,6 +1,7 @@
 # util.py
 # utility misc functions
 
+import json
 from hal import ADC_STEP_SIZE, DISTANCE_PER_LEVEL
 
 # human readable conversion functions
@@ -22,15 +23,6 @@ def lbs2kg(lbs):
 def kg2lbs(kg):
     return kg * 2.20462
 
-# config handling
-def load_config(cfg_path):
-    pass
-
-def save_config(cfg_path):
-    pass
-
-def edit_config(cfg_path):
-    pass
 
 # log file handling
 def cleanup_log(logfile):

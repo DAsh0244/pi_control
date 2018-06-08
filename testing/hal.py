@@ -5,6 +5,7 @@
 # usage:
 # from hal import *
 
+import json
 from random import randint as _randint
 
 def _NOP(*args, **kwargs):
@@ -47,6 +48,9 @@ except ImportError:
 
 # meta information that may be useful
 GLOBAL_VCC = 3.3
+TIMEOUT = None
+UNITS = 'raw'
+OUTFILE = None
 
 # Pins
 RELAY_1_PIN = 17
@@ -107,7 +111,7 @@ DISTANCE_PER_VOLT = STROKE / POT_VOLTAGE
 ACTUATOR_INCHES_PER_SECOND = {35:{'None':2.00,'Full':1.38},
                                                             50:{'None':1.14,'Full':0.83},
                                                             150:{'None':0.37,'Full':0.28},
-                                                            }
+                                                            } # key is force (lbs)
 DISTANCE_PER_LEVEL = ADC_STEP_SIZE * DISTANCE_PER_VOLT  # inches / step
 
 class _ADC(ADS1115):
@@ -127,10 +131,16 @@ class _ADC(ADS1115):
         self.sample_rate = sample_rate
         self.gain = gain
         self.default_channel = default_channel
+        self.step_size = 2 * self.max_voltage / self.levels
 
     @property
     def max_voltage(self):
         return self.pga_map[self.gain]
+
+    def start_conversions():
+        self.start_adc_comparator(self.default_channel, 2**16-1, 0, gain=self.gain, data_rate=self.sample_rate)
+
+
 
 # default Thresholds
 POS_LIMIT_LOW = 10
@@ -151,10 +161,7 @@ def hal_init():
     GPIO.setup(RELAY_2_PIN, GPIO.OUT)   # set GPIO22 as an output
 
 def wait_for_sample():
-    GPIO.wait_for_edge(ADC_ALERT_PIN,GPIO.FALLINg)
-
-def start_conversions():
-    ADC.start_adc_comparator(ADC_CHANNEL, 2**16-1, 0, gain=ADC_GAIN, data_rate=ADC_SAMPLE_RATE)
+    GPIO.wait_for_edge(ADC_ALERT_PIN,GPIO.FALLING)
 
 def set_actuator_dir(direction):
     if direction == 'forward':
@@ -162,3 +169,27 @@ def set_actuator_dir(direction):
     elif direction == 'backward':
         GPIO.output(RELAY_1_PIN,GPIO.LOW)
 
+
+# config handling
+def load_config(cfg_path):
+    with open(cfg_path,'r') as cfg_file:
+        config = json.load(cfg_file)
+    for key,val in config.items():
+        globals()[key] = val
+
+def save_config(cfg_path):
+    with open(cfg_path,'w') as cfg_file:
+        json.dump({'POS_LIMIT_LOW':POS_LIMIT_LOW,
+                            'POS_LIMIT_HIGH': POS_LIMIT_HIGH,
+                            'POS_THRESHOLD_LOW': POS_THRESHOLD_LOW,
+                            'POS_THRESHOLD_HIGH':POS_THRESHOLD_HIGH,
+                            'ADC_SAMPLE_RATE':ADC_SAMPLE_RATE,
+                            'TIMEOUT':TIMEOUT,
+                            'UNITS': UNITS,
+                            'OUTFILE':OUTFILE,
+                            },
+                             cfg_file
+                         )
+
+def edit_config(cfg_path):
+    pass

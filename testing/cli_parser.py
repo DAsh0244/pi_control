@@ -29,10 +29,12 @@ cmds = {'TEST_ADC' : 'test_adc',
               'TEST_DAC' : 'test_dac',
               'TEST_CAL' : 'test_cal',
               'TEST_POS' : 'test_pos',
+              'RUN_ACQ' : 'acquire',
 }
 
 actions = { 'RESET_MIN': 'reset_min',
-                  'RESET_MAX':'reset_max'
+                  'RESET_MAX':'reset_max',
+                  'GOTO_POS': 'set_pos'
 }
 
 parser = ArgumentParser() # 'elastocaloric testing'
@@ -61,13 +63,19 @@ test_positioning_parser.add_argument('-h','--high_threshold', type=int, default=
 test_positioning_parser.add_argument('-H','--high_max', type=int, default=POS_LIMIT_HIGH)
 test_positioning_parser.add_argument('--help', action='help', help='print help')
 
-
 pos_subparsers = test_positioning_parser.add_subparsers(help='specific position action to take', dest='action')
 pos_subparsers.add_parser(actions['RESET_MIN'], help='reset to minimum extension')
 pos_subparsers.add_parser(actions['RESET_MAX'], help='reset to max extension')
 
 goto_parser = pos_subparsers.add_parser('goto_pos', help='go to desired position')
 goto_parser.add_argument('position', type=int, default=ADC_LEVELS//2, help='position value between 0 and {}'.format(ADC_MAX_LEVEL))
+
+monitor_parser= subparsers.add_parser(cmds['RUN_ACQ'], add_help=False, help='run acquisition')
+monitor_parser.add_argument('-L','--low_min', type=int, default=POS_LIMIT_LOW)
+monitor_parser.add_argument('-l','--low_threshold', type=int, default=POS_THRESHOLD_LOW)
+monitor_parser.add_argument('-h','--high_threshold', type=int, default=POS_THRESHOLD_HIGH)
+monitor_parser.add_argument('-H','--high_max', type=int, default=POS_LIMIT_HIGH)
+monitor_parser.add_argument('--help', action='help', help='print help')
 
 __all__ = [parser,cmds, actions]
 
