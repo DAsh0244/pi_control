@@ -156,7 +156,7 @@ def hal_init():
     # choose BCM or BOARD
     GPIO.setmode(GPIO.BCM)
     # setup pins
-    GPIO.setup(ADC_ALERT_PIN, GPIO.IN)
+    GPIO.setup(ADC_ALERT_PIN, GPIO.IN,pull_up_down=GPIO.PUD_UP)
     GPIO.setup(RELAY_1_PIN, GPIO.OUT)   # set GPIO17 as an output
     GPIO.setup(RELAY_2_PIN, GPIO.OUT)   # set GPIO22 as an output
 
@@ -169,27 +169,3 @@ def set_actuator_dir(direction):
     elif direction == 'backward':
         GPIO.output(RELAY_1_PIN,GPIO.LOW)
 
-
-# config handling
-def load_config(cfg_path):
-    with open(cfg_path,'r') as cfg_file:
-        config = json.load(cfg_file)
-    for key,val in config.items():
-        globals()[key] = val
-
-def save_config(cfg_path):
-    with open(cfg_path,'w') as cfg_file:
-        json.dump({'POS_LIMIT_LOW':POS_LIMIT_LOW,
-                            'POS_LIMIT_HIGH': POS_LIMIT_HIGH,
-                            'POS_THRESHOLD_LOW': POS_THRESHOLD_LOW,
-                            'POS_THRESHOLD_HIGH':POS_THRESHOLD_HIGH,
-                            'ADC_SAMPLE_RATE':ADC_SAMPLE_RATE,
-                            'TIMEOUT':TIMEOUT,
-                            'UNITS': UNITS,
-                            'OUTFILE':OUTFILE,
-                            },
-                             cfg_file
-                         )
-
-def edit_config(cfg_path):
-    pass
