@@ -1,0 +1,32 @@
+# global configuration parameters
+--- !Config
+version: 0.0.1
+units: raw
+lower_limit: 0
+upper_limit: 20000
+adc_sample_rate: 860
+adc_gain: 1
+adc_channel: 1
+...
+# begin routine definitions
+--- !Routine
+name: reset_min
+units: raw
+actions:
+  - !Action
+      name: return_max_pos
+      params: [2,11,'asdf']
+  - !Action
+      name: cleanup
+...
+--- !Routine
+name: reset_max
+units: raw
+output: stdout
+actions:
+  - !Action
+      name: return_max_pos
+      params: [1,2,'asdf']
+  - !Action
+      name: cleanup
+...

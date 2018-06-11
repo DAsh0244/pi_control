@@ -402,10 +402,11 @@ def dispatcher(arg_dict):
             set_position(arg_dict['position'])
     elif arg_dict['cmd'] == cmds['RUN_ACQ']:
         monitor_adc_file(**arg_dict)
+    else:
+        print('command "{}" not known'.format(arg_dict['cmd']))
 
 
 if __name__ == '__main__':
-    # GPIO.setup(21,GPIO.IN,pull_up_down=GPIO.PUD_DOWN)
     args = vars(parser.parse_args())
     # print(args)
     dispatcher(args)

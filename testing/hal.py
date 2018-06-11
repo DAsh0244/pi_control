@@ -152,11 +152,12 @@ class AdcConfig:
 
 
 class A2D(AdcConfig, ADS1115):
-    def __init__(self, sample_rate=128, gain=1, vcc=GLOBAL_VCC, default_channel=0):
+    def __init__(self, sample_rate=128, gain=1, vcc=GLOBAL_VCC, default_channel=0, alert_pin=21):
         self.vcc = vcc
         self.sample_rate = sample_rate
         self.gain = gain
         self.default_channel = default_channel
+        self.alert_pin = alert_pin
         self.step_size = 2 * self.max_voltage / self.levels
 
     @property
@@ -165,6 +166,9 @@ class A2D(AdcConfig, ADS1115):
 
     def start_conversions(self):
         self.start_adc_comparator(self.default_channel, 2 ** 16 - 1, 0, gain=self.gain, data_rate=self.sample_rate)
+
+    def wait_for_sample(self):
+        GPIO.wait_for_edge(self.alert_pin, GPIO.FALLING)
 
 
 ADC = A2D(default_channel=1)
@@ -219,3 +223,15 @@ def set_actuator_dir(direction):
         GPIO.output(RELAY_1_PIN, GPIO.HIGH)
     elif direction == 'backward':
         GPIO.output(RELAY_1_PIN, GPIO.LOW)
+
+
+def set_config():
+    return None
+
+
+def register_routine():
+    return None
+
+
+def register_action():
+    return None
