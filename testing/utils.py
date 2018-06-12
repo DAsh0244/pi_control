@@ -15,12 +15,12 @@ def level2position(level):
     return level * ActuatorConfig.distance_per_level
 
 
-def mm2in(mmlength):
-    return mmlength * 0.0393701
+def mm2in(mm_len):
+    return mm_len * 0.0393701
 
 
-def in2mm(inlength):
-    return inlength * 25.4
+def in2mm(in_len):
+    return in_len * 25.4
 
 
 def lbs2kg(lbs):

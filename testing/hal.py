@@ -140,6 +140,7 @@ class _DAC(MCP4725):
     vcc = GLOBAL_VCC
     step_size = vcc / levels
     default_val = 1024
+    stop = 0
 
     def __init__(self, *args, history_len=20, **kwargs):
         self.value_history = _deque(maxlen=history_len)  # holds previous values
