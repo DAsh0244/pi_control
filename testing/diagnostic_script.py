@@ -9,6 +9,7 @@ from collections import deque
 from time import strftime, perf_counter, sleep
 
 from hal import *
+import hal
 from controller import CONTROL_MAP
 # from version import version as __version__
 from cli_parser import parser, cmds, actions
@@ -20,7 +21,7 @@ CONTROLLER = None
 LOGFILE = None
 # GLOBAL_VCC = 3.3
 
-hal_init()  # setup hw
+hal.hal_init()  # setup hw
 
 
 # GPIO ISRs
@@ -28,13 +29,13 @@ hal_init()  # setup hw
 def diagnostic_adc_isr(channel):
     global LAST_TIME
     # print('isr_called')
-    diagnostic_adc_isr.counter += 1
+    # diagnostic_adc_isr.counter += 1
     ts = perf_counter()
     DATA.append((ADC.get_last_result(), ts - LAST_TIME))
     LAST_TIME = ts
 
 
-diagnostic_adc_isr.counter = 0
+# diagnostic_adc_isr.counter = 0
 
 
 # noinspection PyUnusedLocal
@@ -56,6 +57,7 @@ def monitor_adc_isr(channel):
         gpio off
     """
     if value >= POS_THRESHOLD_HIGH:
+        hal.set_actuator_dir('forward')
         print('reverse')
         GPIO.output(RELAY_1_PIN, 0)
     elif value < POS_THRESHOLD_LOW:

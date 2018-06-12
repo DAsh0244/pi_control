@@ -31,7 +31,6 @@ try:
     import RPi.GPIO as GPIO
 except ImportError:
     import warnings as _warnings
-
     _warnings.formatwarning = _warning_on_one_line
     _warnings.warn('failed to load RPi.GPIO, using stub class for syntax checking', RuntimeWarning)
 
@@ -46,7 +45,6 @@ try:
     from Adafruit_MCP4725 import MCP4725
 except ImportError:
     import warnings as _warnings
-
     _warnings.formatwarning = _warning_on_one_line
     _warnings.warn('failed to load hardware interfaces for ADC and/or DAC, using stub classes for syntax checking',
                    RuntimeWarning)
@@ -81,22 +79,17 @@ DEFAULT_DAC_VAL = 1024
 DAC_VAL = DEFAULT_DAC_VAL
 
 
-class DacConfig:
+# potential DAC wrapper
+class _DAC(MCP4725):
     bits = 12
     levels = 2 ** bits
     vcc = GLOBAL_VCC
     step_size = vcc / levels
     default_val = 1024
-    current_val = default_val
 
-
-# potential DAC wrapper
-class _DAC(DacConfig, MCP4725):
     def __init__(self, *args, **kwargs):
-        self.bits = 12
-        self.levels = 2 ** self.bits
-        self.value_history = _deque(maxlen=10)
-        self.dac_value = 0
+        self.value_history = _deque(maxlen=10)  # holds previous values
+        self.dac_value = 0  # holds current value
         super().__init__(*args, **kwargs)
 
     # noinspection SpellCheckingInspection
@@ -138,11 +131,17 @@ ACTUATOR_INCHES_PER_SECOND = {35: {'None': 2.00, 'Full': 1.38},
                               }  # key is force (lbs)
 DISTANCE_PER_LEVEL = ADC_STEP_SIZE * DISTANCE_PER_VOLT  # inches / step
 
+# default Thresholds
+POS_LIMIT_LOW = 10
+POS_THRESHOLD_LOW = 750
+POS_THRESHOLD_HIGH = 17800
+POS_LIMIT_HIGH = round(GLOBAL_VCC / ADC_MAX_VOLTAGE * ADC_MAX_LEVEL)
 
-class AdcConfig:
+
+class A2D(ADS1115):
     bits = 16
     levels = 2 ** bits
-    pga_map = {2 / 3: 6.144,
+    pga_map = {2 / 3: 6.144,  # map of gain values vs max peak readable voltage
                1: 4.096,
                2: 2.048,
                4: 1.024,
@@ -150,14 +149,13 @@ class AdcConfig:
                16: 0.256,
                }
 
-
-class A2D(AdcConfig, ADS1115):
     def __init__(self, sample_rate=128, gain=1, vcc=GLOBAL_VCC, default_channel=0):
         self.vcc = vcc
         self.sample_rate = sample_rate
         self.gain = gain
         self.default_channel = default_channel
         self.step_size = 2 * self.max_voltage / self.levels
+        super().__init__()
 
     @property
     def max_voltage(self):
@@ -167,7 +165,12 @@ class A2D(AdcConfig, ADS1115):
         self.start_adc_comparator(self.default_channel, 2 ** 16 - 1, 0, gain=self.gain, data_rate=self.sample_rate)
 
 
+# HW abstractions
+DAC = MCP4725()
 ADC = A2D(default_channel=1)
+
+
+# ADC = ADS1115()
 
 
 class ActuatorConfig:
@@ -186,18 +189,6 @@ class ActuatorConfig:
     distance_per_level = distance_per_volt * ADC.step_size
 
 
-# default Thresholds
-POS_LIMIT_LOW = 10
-POS_THRESHOLD_LOW = 750
-POS_THRESHOLD_HIGH = 17800
-POS_LIMIT_HIGH = round(GLOBAL_VCC / ADC_MAX_VOLTAGE * ADC_MAX_LEVEL)
-
-# HW abstractions
-DAC = MCP4725()
-# noinspection PyRedeclaration
-ADC = ADS1115()
-
-
 # noinspection PyCallByClass
 def hal_init():
     # choose BCM or BOARD
@@ -210,12 +201,28 @@ def hal_init():
 
 # noinspection PyCallByClass
 def wait_for_sample():
+    """
+    blocking call to wait for the ADC's Alert pin to signal conversion ready
+    :return: None
+    """
     GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.FALLING)
 
 
 # noinspection PyCallByClass
-def set_actuator_dir(direction):
-    if direction == 'forward':
+def set_actuator_dir(direction: str) -> None:
+    """
+    sets actuator direction as forward or backward
+    :type direction: str
+    :param direction: string describing direction. Either '(f)orward' or '(b)ackward'
+    :return: None
+    """
+    if direction in {'forward', 'f'}:
         GPIO.output(RELAY_1_PIN, GPIO.HIGH)
-    elif direction == 'backward':
+    elif direction in {'backward', 'b'}:
         GPIO.output(RELAY_1_PIN, GPIO.LOW)
+    else:
+        raise ValueError('unknown direction {!r}'.format(direction))
+
+
+def load_config(config):
+    pass
