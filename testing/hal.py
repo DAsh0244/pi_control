@@ -1,15 +1,12 @@
 # hal.py
-# provides hardware abstraction layer for easier access to hardware functions
 # put pin configurations and such here
 #
 # usage:
-# from hal import *
 
 from collections import deque as _deque
 from random import randint as _randint
 
 
-# noinspection PyUnusedLocal
 def _nop(*args, **kwargs):
     """function that matches any prototype and proceeds to do nothing"""
     pass
@@ -31,6 +28,7 @@ try:
     import RPi.GPIO as GPIO
 except ImportError:
     import warnings as _warnings
+
     _warnings.formatwarning = _warning_on_one_line
     _warnings.warn('failed to load RPi.GPIO, using stub class for syntax checking', RuntimeWarning)
 
@@ -39,12 +37,14 @@ except ImportError:
         """quick stub class for GPIO"""
         BCM = BOARD = HIGH = LOW = IN = OUT = RISING = FALLING = BOTH = PUD_UP = PUD_DOWN = None
         setmode = setup = add_event_detect = cleanup = remove_event_detect = output = input = wait_for_edge = _nop
+    # provides hardware abstraction layer for easier access to hardware functions
 
 try:
     from Adafruit_ADS1x15 import ADS1115
     from Adafruit_MCP4725 import MCP4725
 except ImportError:
     import warnings as _warnings
+
     _warnings.formatwarning = _warning_on_one_line
     _warnings.warn('failed to load hardware interfaces for ADC and/or DAC, using stub classes for syntax checking',
                    RuntimeWarning)
@@ -58,6 +58,7 @@ except ImportError:
     class ADS1115:
         """quick stub class for ADS1115"""
         start_adc = start_adc_comparator = stop_adc = get_last_result = read_adc = _sop
+# from hal import *
 
 # meta information that may be useful
 GLOBAL_VCC = 3.3
@@ -73,41 +74,6 @@ PINS = {
 }
 
 
-
-# potential DAC wrapper
-class _DAC(MCP4725):
-    bits = 12
-    levels = 2 ** bits
-    vcc = GLOBAL_VCC
-    step_size = vcc / levels
-    default_val = 1024
-
-    def __init__(self, *args, **kwargs):
-        self.value_history = _deque(maxlen=10)  # holds previous values
-        self.dac_value = 0  # holds current value
-        super().__init__(*args, **kwargs)
-
-    # noinspection SpellCheckingInspection
-    def set_vout(self, vout):
-        self.value_history.append(self.dac_value)
-        self.dac_value = vout / self.vcc * self.levels
-        self.set_voltage(self.dac_value)
-
-    def set_out_speed(self, speed):
-        # will require speed vs voltage information
-        pass
-
-
-# default Thresholds
-POS_LIMIT_LOW = 10
-POS_THRESHOLD_LOW = 750
-POS_THRESHOLD_HIGH = 17800
-POS_LIMIT_HIGH = 26000
-
-
-# POS_LIMIT_HIGH = round(GLOBAL_VCC / ADC_MAX_VOLTAGE * ADC_MAX_LEVEL)
-
-
 class A2D(ADS1115):
     bits = 16
     levels = 2 ** bits
@@ -119,13 +85,19 @@ class A2D(ADS1115):
                16: 0.256,
                }
 
-    def __init__(self, sample_rate=128, gain=1, vcc=GLOBAL_VCC, default_channel=0):
+    def __init__(self, sample_rate=128, gain=1, vcc=GLOBAL_VCC, default_channel=0, *extra, history_len=20):
         self.vcc = vcc
         self.sample_rate = sample_rate
         self.gain = gain
         self.default_channel = default_channel
         self.step_size = 2 * self.max_voltage / self.levels
+        self.history = _deque(maxlen=history_len)
         super().__init__()
+
+    def get_last_result(self):
+        res = super().get_last_result()
+        self.history.append(res)
+        return res
 
     @property
     def max_voltage(self):
@@ -135,9 +107,13 @@ class A2D(ADS1115):
         self.start_adc_comparator(self.default_channel, 2 ** 16 - 1, 0, gain=self.gain, data_rate=self.sample_rate)
 
 
-# HW abstractions
-DAC = MCP4725()
+# noinspection PyUnusedLocal
+
+
+# instantiate ADC
 ADC = A2D(default_channel=1)
+
+
 # ADC = ADS1115()
 
 
@@ -156,6 +132,48 @@ class ActuatorConfig:
     distance_per_volt = stroke / pot_voltage
     distance_per_level = distance_per_volt * ADC.step_size
 
+
+# DAC wrapper
+class _DAC(MCP4725):
+    bits = 12
+    levels = 2 ** bits
+    vcc = GLOBAL_VCC
+    step_size = vcc / levels
+    default_val = 1024
+
+    def __init__(self, *args, history_len=20, **kwargs):
+        self.value_history = _deque(maxlen=history_len)  # holds previous values
+        self.value = 0  # holds current value
+        super().__init__(*args, **kwargs)
+
+    def set_voltage(self, level):
+        self.value_history.append(self.value)
+        self.value = level
+        super().set_voltage(level)
+
+    # noinspection SpellCheckingInspection
+    def set_vout(self, vout):
+        self.value_history.append(self.value)
+        self.value = vout / self.vcc * self.levels
+        super().set_voltage(self.value)
+
+    def set_out_speed(self, speed):
+        pass
+        # will require speed vs voltage information
+
+
+# DAC = MCP4725()
+DAC = _DAC()
+
+
+# hardware actions
+# class HwAction:
+#     def __init__(self, name, action):
+#         self.name = name
+#         self.action = action
+#
+#     def do(self):
+#         self.action()
 
 # noinspection PyCallByClass
 def hal_init():
