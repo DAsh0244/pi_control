@@ -8,8 +8,5 @@ Author: Danyal Ahsanullah
 Date: 6/11/2018
 Copyright (c):  2018 Danyal Ahsanullah
 License: N/A
-Description: 
+Description: import available routines here
 """
-
-if __name__ == '__main__':
-    pass
