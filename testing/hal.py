@@ -66,17 +66,12 @@ UNITS = 'raw'
 OUTFILE = None
 
 # Pins
-RELAY_1_PIN = 17
-RELAY_2_PIN = 22
-ADC_ALERT_PIN = 21
+PINS = {
+    'relay_1': 17,
+    'relay_2': 22,
+    'adc_alert': 21,
+}
 
-# DAC info
-DAC_BITS = 12
-DAC_LEVELS = 2 ** DAC_BITS
-DAC_VOLTAGE = GLOBAL_VCC
-DAC_STEP_SIZE = DAC_VOLTAGE / DAC_LEVELS
-DEFAULT_DAC_VAL = 1024
-DAC_VAL = DEFAULT_DAC_VAL
 
 
 # potential DAC wrapper
@@ -103,39 +98,14 @@ class _DAC(MCP4725):
         pass
 
 
-# ADC info
-ADC_GAIN = 1  # configurable, value must be one of: 2/3, 1, 2, 4, 8, 16
-ADC_CHANNEL = 1  # configurable, value must be one of: 0, 1, 2, 3
-ADC_SAMPLE_RATE = 128  # configurable, value must be: 8, 16, 32, 64, 128, 250, 475, 860
-ADC_SAMPLE_BITS = 16
-ADC_LEVELS = 2 ** ADC_SAMPLE_BITS
-ADC_PGA_MAP = {2 / 3: 6.144,
-               1: 4.096,
-               2: 2.048,
-               4: 1.024,
-               8: 0.512,
-               16: 0.256,
-               }
-ADC_MAX_VOLTAGE = ADC_PGA_MAP[ADC_GAIN]
-ADC_STEP_SIZE = 2 * ADC_MAX_VOLTAGE / (2 ** 16)  # volt/step
-ADC_MAX_LEVEL = 2 ** 16 / 2 - 1  # hits ADC_MAX_VOLTAGE
-
-# Actuator information
-STROKE = 12  # stroke length (INCHES)
-POT_VALUE = 10000  # 10k pot
-POT_VOLTAGE = 3.3  # connected to a 3V3 supply rail
-DISTANCE_PER_VOLT = STROKE / POT_VOLTAGE
-ACTUATOR_INCHES_PER_SECOND = {35: {'None': 2.00, 'Full': 1.38},
-                              50: {'None': 1.14, 'Full': 0.83},
-                              150: {'None': 0.37, 'Full': 0.28},
-                              }  # key is force (lbs)
-DISTANCE_PER_LEVEL = ADC_STEP_SIZE * DISTANCE_PER_VOLT  # inches / step
-
 # default Thresholds
 POS_LIMIT_LOW = 10
 POS_THRESHOLD_LOW = 750
 POS_THRESHOLD_HIGH = 17800
-POS_LIMIT_HIGH = round(GLOBAL_VCC / ADC_MAX_VOLTAGE * ADC_MAX_LEVEL)
+POS_LIMIT_HIGH = 26000
+
+
+# POS_LIMIT_HIGH = round(GLOBAL_VCC / ADC_MAX_VOLTAGE * ADC_MAX_LEVEL)
 
 
 class A2D(ADS1115):
@@ -168,14 +138,12 @@ class A2D(ADS1115):
 # HW abstractions
 DAC = MCP4725()
 ADC = A2D(default_channel=1)
-
-
 # ADC = ADS1115()
 
 
 class ActuatorConfig:
     pos_limit_low = 10
-    pos_limit_high = round(GLOBAL_VCC / ADC_MAX_VOLTAGE * ADC_MAX_LEVEL)
+    pos_limit_high = 26000
     pos_threshold_high = 17800
     pos_threshold_low = 750
     stroke = 12  # stroke length (inches)
@@ -194,9 +162,9 @@ def hal_init():
     # choose BCM or BOARD
     GPIO.setmode(GPIO.BCM)
     # setup pins
-    GPIO.setup(ADC_ALERT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.setup(RELAY_1_PIN, GPIO.OUT)  # set GPIO17 as an output
-    GPIO.setup(RELAY_2_PIN, GPIO.OUT)  # set GPIO22 as an output
+    GPIO.setup(PINS['adc_alert'], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(PINS['relay_1'], GPIO.OUT)  # set GPIO17 as an output
+    GPIO.setup(PINS['relay_2'], GPIO.OUT)  # set GPIO22 as an output
 
 
 # noinspection PyCallByClass
@@ -205,7 +173,7 @@ def wait_for_sample():
     blocking call to wait for the ADC's Alert pin to signal conversion ready
     :return: None
     """
-    GPIO.wait_for_edge(ADC_ALERT_PIN, GPIO.FALLING)
+    GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING)
 
 
 # noinspection PyCallByClass
@@ -217,9 +185,9 @@ def set_actuator_dir(direction: str) -> None:
     :return: None
     """
     if direction in {'forward', 'f'}:
-        GPIO.output(RELAY_1_PIN, GPIO.HIGH)
+        GPIO.output(PINS['relay_1'], GPIO.HIGH)
     elif direction in {'backward', 'b'}:
-        GPIO.output(RELAY_1_PIN, GPIO.LOW)
+        GPIO.output(PINS['relay_1'], GPIO.LOW)
     else:
         raise ValueError('unknown direction {!r}'.format(direction))
 

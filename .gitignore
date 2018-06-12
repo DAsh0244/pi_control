@@ -179,7 +179,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-testing/libs/
+lib/
 lib64/
 parts/
 sdist/
