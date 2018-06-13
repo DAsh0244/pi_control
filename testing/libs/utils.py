@@ -1,26 +1,24 @@
 # util.py
 # utility misc functions
 
-# noinspection PyUnresolvedReferences
-import yaml as cfg_formatter
-from hal import ActuatorConfig, ADC  # , DAC
+from hal import ADC_STEP_SIZE, DISTANCE_PER_LEVEL
 
 
 # human readable conversion functions
 def level2voltage(level):
-    return level * ADC.step_size
+    return level * ADC_STEP_SIZE
 
 
 def level2position(level):
-    return level * ActuatorConfig.distance_per_level
+    return level * DISTANCE_PER_LEVEL
 
 
-def mm2in(mm_len):
-    return mm_len * 0.0393701
+def mm2in(mmlength):
+    return mmlength * 0.0393701
 
 
-def in2mm(in_len):
-    return in_len * 25.4
+def in2mm(inlength):
+    return inlength * 25.4
 
 
 def lbs2kg(lbs):
