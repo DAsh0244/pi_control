@@ -119,7 +119,6 @@ ADC = A2D(default_channel=1)
 
 # ADC = ADS1115()
 
-
 class ActuatorConfig:
     pos_limit_low = 10
     pos_limit_high = 26000

@@ -14,6 +14,9 @@ from time import (
 from version import version as __version__
 from utils import cfg_formatter
 from controller import CONTROL_MAP
+# noinspection PyUnresolvedReferences
+from version import version as __version__
+from cli_parser import parser, cmds, actions
 from cli_parser import (
     parser,
     cmds,
