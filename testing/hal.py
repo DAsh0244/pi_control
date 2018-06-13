@@ -84,7 +84,6 @@ class A2D(ADS1115):
                8: 0.512,
                16: 0.256,
                }
-
     def __init__(self, sample_rate=128, gain=1, vcc=GLOBAL_VCC, default_channel=0,
                  *extra, alert_pin=21, history_len=20):
         self.vcc = vcc
@@ -111,14 +110,8 @@ class A2D(ADS1115):
     def wait_for_sample(self):
         GPIO.wait_for_edge(self.alert_pin, GPIO.FALLING)
 
-
-# noinspection PyUnusedLocal
-
-
 # instantiate ADC
 ADC = A2D(default_channel=1)
-
-
 # ADC = ADS1115()
 
 
@@ -216,6 +209,16 @@ def wait_for_sample():
     GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING)
 
 
+# noinspection PyCallByClass
+def wait_for_sample():
+    """
+    blocking call to wait for the ADC's Alert pin to signal conversion ready
+    :return: None
+    """
+    GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING)
+
+
+# noinspection PyCallByClass
 def set_actuator_dir(direction: str) -> None:
     """
     sets actuator direction as forward or backward
