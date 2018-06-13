@@ -24,8 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 import logging
-import warnings
-import math
+# import warnings
+# import math
 
 import Adafruit_GPIO as Adafruit_GPIO
 import Adafruit_GPIO.SPI as SPI
@@ -80,11 +80,10 @@ class MAX31856(object):
     MAX31856_CR0_READ_CONT = 0x80  # Continuous reading, delay approx. 100ms between readings
 
     # Thermocouple Types
-    THERMOCOUPLE_MAP = {'B':0x0, 'E':0x1, 'J':0x2, 'K':0x3, 'N':0x4, 'R':0x5, 'S':0x6, 'T':0x7}
+    THERMOCOUPLE_MAP = {'B': 0x0, 'E': 0x1, 'J': 0x2, 'K': 0x3, 'N': 0x4, 'R': 0x5, 'S': 0x6, 'T': 0x7}
 
     # sample numbers
-    SAMPLE_MAP = {1: 0x0, 2:0x01, 4:0x02, 8:0x03, 16:0x04}
-
+    SAMPLE_MAP = {1: 0x0, 2: 0x01, 4: 0x02, 8: 0x03, 16: 0x04}
 
     def __init__(self, tc_type='T', avgsel=1, software_spi=None, hardware_spi=None, gpio=None):
         """Initialize MAX31856 device with software SPI on the specified CLK,
@@ -256,17 +255,3 @@ class MAX31856(object):
 
         # If we've gotten this far without an exception, the transmission must've gone through
         return True
-
-    # Deprecated Methods
-    def readTempC(self):  # pylint: disable-msg=invalid-name
-        """Depreciated due to Python naming convention, use read_temp_c instead
-        """
-        warnings.warn("Depreciated due to Python naming convention, use read_temp_c() instead", DeprecationWarning)
-        return read_temp_c(self)
-
-    def readInternalTempC(self):  # pylint: disable-msg=invalid-name
-        """Depreciated due to Python naming convention, use read_internal_temp_c instead
-        """
-        warnings.warn("Depreciated due to Python naming convention, use read_internal_temp_c() instead",
-                      DeprecationWarning)
-        return read_internal_temp_c(self)

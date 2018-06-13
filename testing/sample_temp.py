@@ -22,18 +22,17 @@
 # THE SOFTWARE.
 
 # Global Imports
-import logging
-import time
+# import logging
+# import time
 import Adafruit_GPIO
 
 # Local Imports
-from max31856 import MAX31856
+from libs import MAX31856
 
-import time, math
-from time import sleep, strftime, time
+# import time, math
+from time import sleep, strftime
 
 import matplotlib.pyplot as plt
-
 
 plt.ion()
 x_time = []
@@ -43,7 +42,6 @@ sensor2_internal = []
 sensor2_external = []
 sensor3_internal = []
 sensor3_external = []
-
 
 # Uncomment one of the blocks of code below to configure your Pi to use software or hardware SPI.
 
@@ -57,13 +55,13 @@ sensor3_external = []
 # Raspberry Pi hardware SPI configuration.
 SPI_PORT = 0
 SPI_DEVICE = 0
-sensor = MAX31856(avgsel=2, hardware_spi=Adafruit_GPIO.SPI.SpiDev(SPI_PORT, SPI_DEVICE))
+sensor = MAX31856(avgsel=4, hardware_spi=Adafruit_GPIO.SPI.SpiDev(SPI_PORT, SPI_DEVICE))
 
 SPI_PORT = 0
 SPI_DEVICE = 1
-sensor2 = MAX31856(hardware_spi=Adafruit_GPIO.SPI.SpiDev(SPI_PORT, SPI_DEVICE))
+sensor2 = MAX31856(avgsel=4, hardware_spi=Adafruit_GPIO.SPI.SpiDev(SPI_PORT, SPI_DEVICE))
 
-sensor3 = MAX31856(software_spi={'clk': 13, 'cs': 5, 'do': 19, 'di': 26})
+sensor3 = MAX31856(avgsel=4, software_spi={'clk': 13, 'cs': 5, 'do': 19, 'di': 26})
 
 
 def write_temp(timestamp, temp, internal, temp2, internal2, temp3, internal3):
@@ -77,10 +75,13 @@ def write_temp(timestamp, temp, internal, temp2, internal2, temp3, internal3):
 
 
 def graph():
-   plt.clf()
-   #plt.scatter(x,y,y2)
-   plt.plot(x,y,x,y2)
-   plt.pause(0.0001)
+    plt.clf()
+    # plt.scatter(x,y,y2)
+    plt.plot(x_time,
+             sensor_external, sensor_internal,
+             sensor2_external, sensor2_internal,
+             sensor3_external, sensor3_internal)
+    plt.pause(0.0001)
 
 
 print('Press Ctrl-C to quit.')

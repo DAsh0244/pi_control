@@ -11,5 +11,5 @@ License: N/A
 Description: 
 """
 
-if __name__ == '__main__':
-    pass
+from .max31856 import MAX31856
+# import utils
