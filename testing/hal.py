@@ -84,8 +84,10 @@ class A2D(ADS1115):
                8: 0.512,
                16: 0.256,
                }
+
     def __init__(self, sample_rate=128, gain=1, vcc=GLOBAL_VCC, default_channel=0,
                  *extra, alert_pin=21, history_len=20):
+
         self.vcc = vcc
         self.sample_rate = sample_rate
         self.gain = gain
@@ -112,6 +114,9 @@ class A2D(ADS1115):
 
 # instantiate ADC
 ADC = A2D(default_channel=1)
+# ADC = ADS1115()
+
+
 # ADC = ADS1115()
 
 
@@ -164,7 +169,6 @@ class _DAC(MCP4725):
 # DAC = MCP4725()
 DAC = _DAC()
 
-
 # hardware actions
 # class HwAction:
 #     def __init__(self, name, action):
@@ -174,6 +178,7 @@ DAC = _DAC()
 #     def do(self):
 #         self.action()
 
+
 # noinspection PyCallByClass
 def hal_init():
     # choose BCM or BOARD
@@ -182,6 +187,12 @@ def hal_init():
     GPIO.setup(PINS['adc_alert'], GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.setup(PINS['relay_1'], GPIO.OUT)  # set GPIO17 as an output
     GPIO.setup(PINS['relay_2'], GPIO.OUT)  # set GPIO22 as an output
+
+
+def hal_cleanup():
+    DAC.set_voltage(DAC.stop)
+    ADC.stop_adc()
+    GPIO.cleanup()
 
 
 def set_config():
@@ -198,15 +209,6 @@ def register_routine():
 
 def register_action():
     return None
-
-
-# noinspection PyCallByClass
-def wait_for_sample():
-    """
-    blocking call to wait for the ADC's Alert pin to signal conversion ready
-    :return: None
-    """
-    GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING)
 
 
 # noinspection PyCallByClass

@@ -4,14 +4,32 @@
 
 import os
 from collections import deque
-from time import strftime, perf_counter, sleep
+from time import (
+    strftime,
+    perf_counter,
+    sleep,
+)
 
-from hal import ADC, hal_init, set_actuator_dir, DAC, ActuatorConfig, PINS, UNITS, GPIO
-from utils import cfg_formatter
-from controller import CONTROL_MAP
 # noinspection PyUnresolvedReferences
 from version import version as __version__
-from cli_parser import parser, cmds, actions
+from utils import cfg_formatter
+from controller import CONTROL_MAP
+from cli_parser import (
+    parser,
+    cmds,
+    actions,
+)
+from hal import (
+    ADC,
+    hal_init,
+    set_actuator_dir,
+    DAC,
+    ActuatorConfig,
+    PINS,
+    UNITS,
+    GPIO,
+    hal_cleanup,
+)
 
 # globals for routines & ISRs
 ####################################################
@@ -409,6 +427,4 @@ if __name__ == '__main__':
     # print(args)
     dispatcher(args)
     # ensure stop
-    DAC.set_voltage(DAC.stop)
-    ADC.stop_adc()
-    GPIO.cleanup()
+    hal_cleanup()
