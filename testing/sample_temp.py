@@ -30,7 +30,7 @@ import Adafruit_GPIO
 from libs import MAX31856
 
 # import time, math
-from time import sleep, strftime
+from time import sleep, strftime, time
 
 import matplotlib.pyplot as plt
 
@@ -66,7 +66,7 @@ sensor3 = MAX31856(avgsel=4, software_spi={'clk': 13, 'cs': 5, 'do': 19, 'di': 2
 
 def write_temp(timestamp, temp, internal, temp2, internal2, temp3, internal3):
     with open("temp.csv", "a") as log:
-        log.write("{0},{1!s},{2!s},{3!s},{4!s},{5!s},{6!}\n".format(timestamp,
+        log.write("{0},{1!s},{2!s},{3!s},{4!s},{5!s},{6!s}\n".format(timestamp,
                                                                     temp, internal,
                                                                     temp2, internal2,
                                                                     temp3, internal3
@@ -77,15 +77,23 @@ def write_temp(timestamp, temp, internal, temp2, internal2, temp3, internal3):
 def graph():
     plt.clf()
     # plt.scatter(x,y,y2)
-    plt.plot(x_time,
-             sensor_external, sensor_internal,
-             sensor2_external, sensor2_internal,
-             sensor3_external, sensor3_internal)
+    plt.subplot(2,1,1)
+    plt.plot(x_time, sensor_external, color='r', linestyle='-', label='CH1:EXT')
+#    plt.plot(x_time, sensor3_external, color='g', linestyle='-', label='CH3:EXT')
+#    plt.plot(x_time, sensor2_external, color='b', linestyle='-', label='CH2:EXT')
+    plt.legend(loc='upper right')
+    plt.subplot(2,1,2)
+    plt.plot(x_time, sensor_internal, color='r', linestyle='-.', label='CH1:INT')
+    plt.plot(x_time, sensor2_internal, color='b', linestyle='-.', label='CH2:INT')
+    plt.plot(x_time, sensor3_internal, color='g', linestyle='-.', label='CH3:INT')
+    plt.legend(loc='upper right')
     plt.pause(0.0001)
 
 
 print('Press Ctrl-C to quit.')
+start = time()
 while True:
+    seconds = time()
     time_stamp = strftime("%Y-%m-%d %H:%M:%S")
     temp = sensor.read_temp_c()
     internal = sensor.read_internal_temp_c()
@@ -94,7 +102,7 @@ while True:
     temp3 = sensor3.read_temp_c()
     internal3 = sensor3.read_internal_temp_c()
 
-    x_time.append(time_stamp)
+    x_time.append(seconds - start)
     sensor_internal.append(internal)
     sensor_external.append(temp)
     sensor2_internal.append(internal2)
