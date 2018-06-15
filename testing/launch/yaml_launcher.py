@@ -15,8 +15,7 @@ in the specified yaml configuration file
 import yaml
 
 import hal
-from cli_parser import actions as action_map
-
+from launch.cli_parser import actions as action_map
 
 DOC_DISPATCHER = {'CFG': hal.set_config,
                   'RTN': hal.register_routine,
@@ -28,21 +27,36 @@ def load_config(path):
     with open(path, 'r') as file:
         docs = yaml.load_all(file)
         for doc in docs:
-            DOC_DISPATCHER[doc.__type](doc)
+            print(doc)
+            # DOC_DISPATCHER[doc.__type](doc)
 
 
+# TODO: figure out validataion -- looksl ike have to define a hook function in the from_yaml hook
 class Config(yaml.YAMLObject):
     yaml_tag = '!Config'
     __type = 'CFG'
+    accepted_units = {'raw', 'imperial', 'metric'}  # raw: A/D levels, imperial: in, lb, metric: mm, kg
+    accepted_adc_sample_rates = {8, 16, 32, 64, 128, 250, 475, 860}
+    accepted_adc_gains = {2 / 3, 1, 2, 4, 8, 16}
+    accepted_adc_channels = {0, 1, 2, 3}
 
     def __init__(self, version, units, upper_limit, lower_limit, adc_sample_rate, adc_gain, adc_channel):
-        self.version = version
-        self.units = units
-        self.upper_limit = upper_limit
-        self.lower_limit = lower_limit
-        self.adc_sample_rate = adc_sample_rate
-        self.adc_gain = adc_gain  # configurable, value must be one of: 2/3, 1, 2, 4, 8, 16
-        self.adc_channel = adc_channel  # configurable, value must be one of: 0, 1, 2, 3
+        if units in self.accepted_units and \
+                adc_sample_rate in self.accepted_adc_sample_rates and \
+                adc_gain in self.accepted_adc_gains and \
+                adc_channel in self.accepted_adc_channels:
+            self.version = version  #
+            self.units = units  #
+            self.upper_limit = upper_limit  #
+            self.lower_limit = lower_limit  #
+            self.adc_sample_rate = adc_sample_rate  # configurable, value must be one of: 8, 16, 32, 64, 128, 250, 475, 860
+            self.adc_gain = adc_gain  # configurable, value must be one of: 2/3, 1, 2, 4, 8, 16
+            self.adc_channel = adc_channel  # configurable, value must be one of: 0, 1, 2, 3
+        else:
+            raise ValueError('Bad key in yaml configuration.')
+
+    def verify(self):
+        return
 
     def __repr__(self):
         return '{!s}({!s})'.format(self.__class__.__name__,
@@ -76,4 +90,8 @@ class Action(yaml.YAMLObject):
         return '{!s}({!s})'.format(self.__class__.__name__,
                                    repr(','.join('{!s}={!r}'.format(k, v) for k, v in vars(self).items()))[1:-1])
 
+
 __all__ = ['load_config']  # , 'DOC_DISPATCHER']
+
+if __name__ == '__main__':
+    load_config('test_config.yaml')

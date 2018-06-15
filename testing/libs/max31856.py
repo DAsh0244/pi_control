@@ -1,4 +1,13 @@
+import logging
 """max31856.py
+
+modified version of John Robinson's MAX31856 sensor software interface.
+
+Copyright (c) 2018 Danyal Ahsanullah
+Author: 2018 Danyal Ahsanullah
+
+BEGIN ORIGINAL LICENSE
+-----------------------------------------------------------------------------------
 
 Class which defines interaction with the MAX31856 sensor.
 
@@ -22,8 +31,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+-----------------------------------------------------------------------------------
 """
-import logging
 # import warnings
 # import math
 
