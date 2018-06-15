@@ -36,6 +36,7 @@ DATA = deque()
 LAST_TIME = 0
 CONTROLLER = None
 LOGFILE = None
+WAIT_TIMEOUT = 3  # 3ms max wait
 # GLOBAL_VCC = 3.3
 
 hal_init()  # setup hw
@@ -97,7 +98,7 @@ def reset_max():
     else:
         DAC.set_voltage(DAC.default_val)
         while value <= Actuator.pos_limit_low:
-            GPIO.wait_for_edge(PINS['adc_alert'], GPIO.BOTH)
+            GPIO.wait_for_edge(PINS['adc_alert'], GPIO.BOTH, timeout=WAIT_TIMEOUT)
             value = ADC.get_last_result()
         DAC.set_voltage(DAC.stop)
         ADC.stop_adc()
@@ -113,7 +114,7 @@ def reset_min():
     else:
         DAC.set_voltage(DAC.default_val)
         while value <= Actuator.pos_limit_low:
-            GPIO.wait_for_edge(PINS['adc_alert'], GPIO.BOTH)
+            GPIO.wait_for_edge(PINS['adc_alert'], GPIO.BOTH, timeout=WAIT_TIMEOUT)
             value = ADC.get_last_result()
         DAC.set_voltage(DAC.stop)
         ADC.stop_adc()
@@ -132,7 +133,7 @@ def set_position(position):
     DAC.value = DAC.default_val
     DAC.set_voltage(DAC.value)
     while True:
-        GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING)
+        GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING, timeout=WAIT_TIMEOUT)
         value = ADC.get_last_result()
         print(DAC.value, value)
         if DAC.value == 0:
@@ -230,7 +231,7 @@ def test_configurations():
             print('Hit absolute max limit', value)
             GPIO.output(PINS['relay_1'], 0)
             flag = True
-        GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING)
+        GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING, timeout=WAIT_TIMEOUT)
         value = ADC.get_last_result()
     flag = False
     value = ADC.get_last_result()
@@ -239,7 +240,7 @@ def test_configurations():
             print('Hit absolute min limit', value)
             GPIO.output(PINS['relay_1'], 1)
             flag = True
-        GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING)
+        GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING, timeout=WAIT_TIMEOUT)
         value = ADC.get_last_result()
     flag = False
     value = ADC.get_last_result()
@@ -249,7 +250,7 @@ def test_configurations():
             GPIO.output(PINS['relay_1'], 0)
             flag = True
             # ADC.stop_adc()
-        GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING)
+        GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING, timeout=WAIT_TIMEOUT)
         value = ADC.get_last_result()
     flag = False
     value = ADC.get_last_result()
@@ -259,7 +260,7 @@ def test_configurations():
             print('Hit designated min limit', value)
             GPIO.output(PINS['relay_1'], 1)
             flag = True
-        GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING)
+        GPIO.wait_for_edge(PINS['adc_alert'], GPIO.FALLING, timeout=WAIT_TIMEOUT)
         value = ADC.get_last_result()
     DAC.set_voltage(DAC.stop)
     ADC.stop_adc()
