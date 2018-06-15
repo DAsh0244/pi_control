@@ -87,7 +87,6 @@ class A2D(ADS1115):
 
     def __init__(self, sample_rate=128, gain=1, vcc=GLOBAL_VCC, default_channel=0,
                  *extra, alert_pin=21, history_len=20):
-
         self.vcc = vcc
         self.sample_rate = sample_rate
         self.gain = gain
@@ -112,12 +111,10 @@ class A2D(ADS1115):
     def wait_for_sample(self):
         GPIO.wait_for_edge(self.alert_pin, GPIO.FALLING)
 
+
 # instantiate ADC
 ADC = A2D(default_channel=1)
-# ADC = ADS1115()
 
-
-# ADC = ADS1115()
 
 class ActuatorConfig:
     pos_limit_low = 10
@@ -149,23 +146,54 @@ class _DAC(MCP4725):
         self.value = 0  # holds current value
         super().__init__(*args, **kwargs)
 
-    def set_voltage(self, level):
+    def set_level(self, level):
         self.value_history.append(self.value)
         self.value = level
-        super().set_voltage(level)
-
-    # noinspection SpellCheckingInspection
-    def set_vout(self, vout):
-        self.value_history.append(self.value)
-        self.value = vout / self.vcc * self.levels
         super().set_voltage(self.value)
+
+    def set_voltage(self, voltage):
+        self.value_history.append(self.value)
+        self.value = round(voltage / self.step_size)
+        super().set_voltage(self.value)
+
+        # noinspection SpellCheckingInspection
+
+
+class Actuator(ActuatorConfig):
+    def __init__(self, position_sensor, speed_controller, force_sensor):
+        self.position_sensor = position_sensor
+        self.speed_controller = speed_controller
+        self.force_sensor = force_sensor
+        self.pos = self.get_position()
+        self.load = self.get_load()
+
+    def get_position(self):
+        return self.distance_per_level * self.position_sensor.get_last_result()
+
+    def get_load(self):
+        return 4  # guarenteed random
+
+    # noinspection PyCallByClass
+    @staticmethod
+    def set_actuator_dir(direction: str) -> None:
+        """
+        sets actuator direction as forward or backward
+        :type direction: str
+        :param direction: string describing direction. Either '(f)orward' or '(b)ackward'
+        :return: None
+        """
+        if direction in {'forward', 'f'}:
+            GPIO.output(PINS['relay_1'], GPIO.HIGH)
+        elif direction in {'backward', 'b'}:
+            GPIO.output(PINS['relay_1'], GPIO.LOW)
+        else:
+            raise ValueError('unknown direction {!r}'.format(direction))
 
     def set_out_speed(self, speed):
         pass
         # will require speed vs voltage information
 
 
-# DAC = MCP4725()
 DAC = _DAC()
 
 # hardware actions

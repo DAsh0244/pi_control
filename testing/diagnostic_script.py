@@ -14,8 +14,6 @@ from time import (
 from version import version as __version__
 from libs.utils import cfg_formatter
 from libs.controller import CONTROL_MAP
-# noinspection PyUnresolvedReferences
-from version import version as __version__
 from launch.cli_parser import (
     parser,
     cmds,
@@ -23,13 +21,12 @@ from launch.cli_parser import (
 )
 from hal import (
     ADC,
-    hal_init,
-    set_actuator_dir,
     DAC,
-    ActuatorConfig,
     PINS,
     UNITS,
     GPIO,
+    Actuator,
+    hal_init,
     hal_cleanup,
 )
 
@@ -77,13 +74,13 @@ def monitor_adc_isr(channel):
     value > 17800
         gpio off
     """
-    if value >= ActuatorConfig.pos_threshold_high:
-        set_actuator_dir('backward')
+    if value >= Actuator.pos_threshold_high:
+        Actuator.set_actuator_dir('backward')
         print('reverse')
         # GPIO.output(PINS['relay_1'], 0)
 
-    elif value < ActuatorConfig.pos_threshold_low:
-        set_actuator_dir('forward')
+    elif value < Actuator.pos_threshold_low:
+        Actuator.set_actuator_dir('forward')
         print('forward')
         # GPIO.output(PINS['relay_1'], 1)
 
@@ -95,11 +92,11 @@ def reset_max():
     GPIO.output(PINS['relay_1'], 1)
     ADC.start_adc_comparator(ADC.default_channel, 2 ** 16 - 1, 0, gain=ADC.gain, data_rate=ADC.sample_rate)
     value = ADC.get_last_result()
-    if value >= ActuatorConfig.pos_limit_high:
+    if value >= Actuator.pos_limit_high:
         print('already at max position')
     else:
         DAC.set_voltage(DAC.default_val)
-        while value <= ActuatorConfig.pos_limit_low:
+        while value <= Actuator.pos_limit_low:
             GPIO.wait_for_edge(PINS['adc_alert'], GPIO.BOTH)
             value = ADC.get_last_result()
         DAC.set_voltage(DAC.stop)
@@ -111,11 +108,11 @@ def reset_min():
     GPIO.output(PINS['relay_1'], 0)
     ADC.start_adc_comparator(ADC.default_channel, 2 ** 16 - 1, 0, gain=ADC.gain, data_rate=ADC.sample_rate)
     value = ADC.get_last_result()
-    if value <= ActuatorConfig.pos_limit_low:
+    if value <= Actuator.pos_limit_low:
         print('already at min position')
     else:
         DAC.set_voltage(DAC.default_val)
-        while value <= ActuatorConfig.pos_limit_low:
+        while value <= Actuator.pos_limit_low:
             GPIO.wait_for_edge(PINS['adc_alert'], GPIO.BOTH)
             value = ADC.get_last_result()
         DAC.set_voltage(DAC.stop)
@@ -129,9 +126,9 @@ def set_position(position):
     if value == position:
         return
     if value >= position:
-        set_actuator_dir('backward')
+        Actuator.set_actuator_dir('backward')
     else:  # value < position
-        set_actuator_dir('forward')
+        Actuator.set_actuator_dir('forward')
     DAC.value = DAC.default_val
     DAC.set_voltage(DAC.value)
     while True:
@@ -146,12 +143,12 @@ def set_position(position):
             ADC.stop_adc()
             break
         elif value >= position:  # too far, go back
-            # set_actuator_dir('backward')
+            # Actuator.set_actuator_dir('backward')
             GPIO.output(PINS['relay_1'], 0)
             DAC.value >>= 1
             DAC.set_voltage(DAC.value)
         else:  # not far enough, go forward
-            # set_actuator_dir('forward')
+            # Actuator.set_actuator_dir('forward')
             GPIO.output(PINS['relay_1'], 1)
             DAC.value >>= 1
             DAC.set_voltage(DAC.value)
@@ -171,33 +168,33 @@ def calibrate_position():
     input('Hit enter/return to begin.')
     DAC.set_voltage(DAC.default_val)
     input('Hit enter/return to mark absolute upper threshold')
-    ActuatorConfig.pos_limit_high = ADC.read_adc(ADC.default_channel, gain=ADC.gain, data_rate=ADC.sample_rate)
+    Actuator.pos_limit_high = ADC.read_adc(ADC.default_channel, gain=ADC.gain, data_rate=ADC.sample_rate)
     DAC.set_voltage(DAC.stop)
-    print(ActuatorConfig.pos_limit_high)
+    print(Actuator.pos_limit_high)
     GPIO.output(PINS['relay_1'], 0)  # prepare to go backwards
     print('Setting lower threshold')
     input('Hit enter/return to begin.')
     DAC.set_voltage(DAC.default_val)
     input('Hit enter/return to mark absolute lower threshold')
-    ActuatorConfig.pos_limit_low = ADC.read_adc(ADC.default_channel, gain=ADC.gain, data_rate=ADC.sample_rate)
+    Actuator.pos_limit_low = ADC.read_adc(ADC.default_channel, gain=ADC.gain, data_rate=ADC.sample_rate)
     DAC.set_voltage(DAC.stop)
-    print(ActuatorConfig.pos_limit_low)
+    print(Actuator.pos_limit_low)
     GPIO.output(PINS['relay_1'], 1)  # prepare to go forward
     print('Setting upper desired threshold')
     input('Hit enter/return  to begin.')
     DAC.set_voltage(DAC.default_val)
     input('Hit enter/return to mark desired upper threshold')
-    ActuatorConfig.pos_threshold_high = ADC.read_adc(ADC.default_channel, gain=ADC.gain, data_rate=ADC.sample_rate)
+    Actuator.pos_threshold_high = ADC.read_adc(ADC.default_channel, gain=ADC.gain, data_rate=ADC.sample_rate)
     DAC.set_voltage(DAC.stop)
-    print(ActuatorConfig.pos_threshold_high)
+    print(Actuator.pos_threshold_high)
     GPIO.output(PINS['relay_1'], 0)  # prepare to go backwards
     print('Setting lower desired threshold')
     input('Hit enter/return  to begin.')
     DAC.set_voltage(DAC.default_val)
     input('Hit enter/return to mark desired lower threshold')
-    ActuatorConfig.pos_threshold_low = ADC.read_adc(ADC.default_channel, gain=ADC.gain, data_rate=ADC.sample_rate)
+    Actuator.pos_threshold_low = ADC.read_adc(ADC.default_channel, gain=ADC.gain, data_rate=ADC.sample_rate)
     DAC.set_voltage(DAC.stop)
-    print(ActuatorConfig.pos_threshold_low)
+    print(Actuator.pos_threshold_low)
 
 
 def set_controller():
@@ -219,17 +216,17 @@ def test_configurations():
     print('Testing current config of:')
     print('Controller: {!s}'.format(CONTROLLER))
     print('Position Thresholds:')
-    print('Absolute low: {}'.format(ActuatorConfig.pos_limit_low))
-    print('Absolute high: {}'.format(ActuatorConfig.pos_limit_high))
-    print('Set low: {}'.format(ActuatorConfig.pos_threshold_low))
-    print('Set High: {}'.format(ActuatorConfig.pos_threshold_high))
+    print('Absolute low: {}'.format(Actuator.pos_limit_low))
+    print('Absolute high: {}'.format(Actuator.pos_limit_high))
+    print('Set low: {}'.format(Actuator.pos_threshold_low))
+    print('Set High: {}'.format(Actuator.pos_threshold_high))
     GPIO.output(PINS['relay_1'], 1)  # set dir as forward
     DAC.value = 1024
     DAC.set_voltage(DAC.value)
     ADC.start_adc_comparator(ADC.default_channel, 2 ** 16 - 1, 0, gain=ADC.gain, data_rate=ADC.sample_rate)
     value = ADC.get_last_result()
     while not flag:
-        if value >= ActuatorConfig.pos_limit_high:
+        if value >= Actuator.pos_limit_high:
             print('Hit absolute max limit', value)
             GPIO.output(PINS['relay_1'], 0)
             flag = True
@@ -238,7 +235,7 @@ def test_configurations():
     flag = False
     value = ADC.get_last_result()
     while not flag:
-        if value <= ActuatorConfig.pos_limit_low:
+        if value <= Actuator.pos_limit_low:
             print('Hit absolute min limit', value)
             GPIO.output(PINS['relay_1'], 1)
             flag = True
@@ -247,7 +244,7 @@ def test_configurations():
     flag = False
     value = ADC.get_last_result()
     while not flag:
-        if value >= ActuatorConfig.pos_threshold_high:
+        if value >= Actuator.pos_threshold_high:
             print('Hit designated max limit', value)
             GPIO.output(PINS['relay_1'], 0)
             flag = True
@@ -257,7 +254,7 @@ def test_configurations():
     flag = False
     value = ADC.get_last_result()
     while not flag:
-        if value <= ActuatorConfig.pos_threshold_low:
+        if value <= Actuator.pos_threshold_low:
             DAC.set_voltage(DAC.stop)
             print('Hit designated min limit', value)
             GPIO.output(PINS['relay_1'], 1)
@@ -367,10 +364,10 @@ def load_config(cfg_path):
 
 def save_config(cfg_path):
     with open(cfg_path, 'w') as cfg_file:
-        cfg_formatter.dump({'POS_LIMIT_LOW': ActuatorConfig.pos_limit_low,
-                            'POS_LIMIT_HIGH': ActuatorConfig.pos_limit_high,
-                            'POS_THRESHOLD_LOW': ActuatorConfig.pos_threshold_low,
-                            'POS_THRESHOLD_HIGH': ActuatorConfig.pos_threshold_high,
+        cfg_formatter.dump({'POS_LIMIT_LOW': Actuator.pos_limit_low,
+                            'POS_LIMIT_HIGH': Actuator.pos_limit_high,
+                            'POS_THRESHOLD_LOW': Actuator.pos_threshold_low,
+                            'POS_THRESHOLD_HIGH': Actuator.pos_threshold_high,
                             'SAMPLE_RATE': ADC.sample_rate,
                             'TIMEOUT': TIMEOUT,
                             'UNITS': UNITS,
@@ -408,10 +405,10 @@ def dispatcher(arg_dict):
     elif arg_dict['cmd'] == cmds['TEST_CAL']:
         calibrate()
     elif arg_dict['cmd'] == cmds['TEST_POS']:
-        ActuatorConfig.pos_limit_low = arg_dict.pop('low_min')
-        ActuatorConfig.pos_limit_high = arg_dict.pop('high_max')
-        ActuatorConfig.pos_threshold_low = arg_dict.pop('low_threshold')
-        ActuatorConfig.pos_threshold_high = arg_dict['high_threshold']
+        Actuator.pos_limit_low = arg_dict.pop('low_min')
+        Actuator.pos_limit_high = arg_dict.pop('high_max')
+        Actuator.pos_threshold_low = arg_dict.pop('low_threshold')
+        Actuator.pos_threshold_high = arg_dict['high_threshold']
         if arg_dict['action'] == actions['RESET_MIN']:
             reset_min()
         elif arg_dict['action'] == actions['RESET_MAX']:
