@@ -10,6 +10,3 @@ Copyright (c):  2018 Danyal Ahsanullah
 License: N/A
 Description: 
 """
-
-if __name__ == '__main__':
-    pass

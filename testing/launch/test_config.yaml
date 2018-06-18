@@ -14,17 +14,17 @@ ROUTINES: &ROUTINES
     units: raw
     actions:
       - !Action
-          name: return_max_pos
+          name: RESET_MIN
           params: [*LIMIT_LOW, *LIMIT_HIGH]
       - !Action
-          name: cleanup
+          name: CLEANUP
   - !Routine
     name: reset_max
     units: raw
     output: stdout
     actions:
       - !Action
-          name: return_max_pos
+          name: RESET_MAX
           params: [1,2,'asdf']
       - !Action
-          name: cleanup
+          name: CLEANUP

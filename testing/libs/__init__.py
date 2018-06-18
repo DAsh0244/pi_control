@@ -11,5 +11,10 @@ License: N/A
 Description: 
 """
 
-from .max31856 import MAX31856
+try:
+    from .max31856 import MAX31856
+except ImportError:
+    import warnings as _warnings
+
+    _warnings.warn('failed to import MAX31856 interface', RuntimeWarning)
 # import utils

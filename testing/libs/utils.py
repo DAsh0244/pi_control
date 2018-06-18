@@ -2,19 +2,30 @@
 # utility misc functions
 
 # noinspection PyUnresolvedReferences
+import warnings as _warnings
+from random import randint as _randint
+# noinspection PyUnresolvedReferences
 import yaml as cfg_formatter
-from hal import ActuatorConfig, ADC  # , DAC
+
+
+def nop(*args, **kwargs):
+    """function that matches any prototype and proceeds to do nothing"""
+    pass
+
+
+def sop(*args, **kwargs):
+    """function that matches any prototype and just returns a random int"""
+    return _randint(0, 2 ** 15 - 1)
+
+
+def warning_on_one_line(message, category, filename, lineno, file=None, line=None):
+    return '%s:%s: %s: %s\n\n' % (filename, lineno, category.__name__, message)
+
+
+_warnings.formatwarning = warning_on_one_line
 
 
 # human readable conversion functions
-def level2voltage(level):
-    return level * ADC.step_size
-
-
-def level2position(level):
-    return level * ActuatorConfig.distance_per_level
-
-
 def mm2in(mm_len):
     return mm_len * 0.0393701
 
