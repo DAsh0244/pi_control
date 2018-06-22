@@ -13,7 +13,8 @@ Point = namedtuple('Point', 'time error')
 
 
 class ControllerBase(ABC):
-    def __init__(self, input_func, output_func, desired_reference=0, history_len=20):
+    def __init__(self, input_func: function, output_func: function, desired_reference: float = 0.0,
+                 history_len: int = 20):
         """
         :param input_func: function that is used to query the system, and get the new set of inputs.
                            Input mappings should be applied here
@@ -97,4 +98,4 @@ class PIDController(ControllerBase):
         self.out = p_correction + i_correction + d_correction
 
 
-CONTROL_MAP = {1: None, 2: PController, 3: PDController}
+CONTROL_MAP = {1: None, 2: PController, 3: PDController, 4: PIController, 5: PIDController}

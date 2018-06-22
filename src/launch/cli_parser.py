@@ -24,8 +24,8 @@ import sys
 import yaml
 from argparse import ArgumentParser
 
-from version import version as __version__
-from hal import adc, register_action, set_config, actuator, register_routine
+from libs.version import version as __version__
+from libs.hal import adc, register_action, set_config, actuator, register_routine
 
 # command names:
 cmds = {'TEST_ADC': 'test_adc',

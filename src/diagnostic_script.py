@@ -11,7 +11,7 @@ from time import (
 )
 
 # noinspection PyUnresolvedReferences
-from version import version as __version__
+from libs.version import version as __version__
 from libs.utils import cfg_formatter
 from libs.controller import CONTROL_MAP
 from launch.cli_parser import (
@@ -19,7 +19,7 @@ from launch.cli_parser import (
     cmds,
     actions,
 )
-from hal import (
+from libs.hal import (
     adc,
     dac,
     PINS,
