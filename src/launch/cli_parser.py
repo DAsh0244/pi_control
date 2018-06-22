@@ -25,7 +25,8 @@ import yaml
 from argparse import ArgumentParser
 
 from libs.version import version as __version__
-from libs.hal import adc, register_action, set_config, actuator, register_routine
+from libs.hal import adc, set_config, actuator
+from routines import register_routine, register_action
 
 # command names:
 cmds = {'TEST_ADC': 'test_adc',
@@ -65,8 +66,8 @@ test_cal_parser = subparsers.add_parser(cmds['TEST_CAL'], help='test calibration
 
 test_positioning_parser = subparsers.add_parser(cmds['TEST_POS'], add_help=False, help='test controllable positing')
 test_positioning_parser.add_argument('-L', '--low_min', type=int, default=actuator.pos_limit_low)
-test_positioning_parser.add_argument('-l', '--low_threshold', type=int, default=actuator.pos_threshold_low)
-test_positioning_parser.add_argument('-h', '--high_threshold', type=int, default=actuator.pos_threshold_high)
+test_positioning_parser.add_argument('-l', '--low_threshold', type=int, default=actuator.pos_limit_low)
+test_positioning_parser.add_argument('-h', '--high_threshold', type=int, default=actuator.pos_limit_high)
 test_positioning_parser.add_argument('-H', '--high_max', type=int, default=actuator.pos_limit_high)
 test_positioning_parser.add_argument('--help', action='help', help='print help')
 
@@ -80,8 +81,8 @@ goto_parser.add_argument('position', type=int, default=adc.levels // 2,
 
 monitor_parser = subparsers.add_parser(cmds['RUN_ACQ'], add_help=False, help='run acquisition')
 monitor_parser.add_argument('-L', '--low_min', type=int, default=actuator.pos_limit_low)
-monitor_parser.add_argument('-l', '--low_threshold', type=int, default=actuator.pos_threshold_low)
-monitor_parser.add_argument('-h', '--high_threshold', type=int, default=actuator.pos_threshold_high)
+monitor_parser.add_argument('-l', '--low_threshold', type=int, default=actuator.pos_limit_low)
+monitor_parser.add_argument('-h', '--high_threshold', type=int, default=actuator.pos_limit_high)
 monitor_parser.add_argument('-H', '--high_max', type=int, default=actuator.pos_limit_high)
 monitor_parser.add_argument('--help', action='help', help='print help')
 
@@ -153,6 +154,14 @@ class Action(yaml.YAMLObject, ReprMixIn):
     def __init__(self, name, params=None):
         self.action = actions[name]
         self.params = params
+
+
+class LookUpTable(yaml.YAMLObject, ReprMixIn):
+    yaml_tag = '!LUT'
+    __type = 'LUT'
+
+    def __init__(self, lut):
+        self.lut = lut
 
 
 if __name__ == '__main__':

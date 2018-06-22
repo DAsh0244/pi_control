@@ -231,7 +231,7 @@ def calibrate():
             test currently generated scheme
             editing any single point generated
 
-    7 step process:
+    7 step update:
         1. define abs low (leave alone if limit switch)
         2. define abs high (leave alone if limit switch)
         3. define desired stroke low threshold

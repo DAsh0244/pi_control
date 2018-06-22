@@ -10,3 +10,11 @@ Copyright (c):  2018 Danyal Ahsanullah
 License: N/A
 Description: import available routines here
 """
+
+
+def register_routine():
+    return None
+
+
+def register_action():
+    return None

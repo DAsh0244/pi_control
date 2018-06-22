@@ -15,6 +15,8 @@ try:
     from .max31856 import MAX31856
 except ImportError:
     import warnings as _warnings
+    from .utils import warning_on_one_line
 
+    _warnings.formatwarning = warning_on_one_line
     _warnings.warn('failed to import MAX31856 interface', RuntimeWarning)
 # import utils

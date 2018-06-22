@@ -54,13 +54,13 @@ except ImportError:
         stop_adc = _nop
         start_adc = start_adc_comparator = get_last_result = read_adc = _sop
 
-# meta information that may be useful
+# meta information
 GLOBAL_VCC = 3.3
 TIMEOUT = None
 UNITS = 'raw'
 OUTFILE = None
 
-# Pins
+# pin mappings
 PINS = {
     'relay_1': 17,
     'relay_2': 22,
@@ -73,7 +73,7 @@ class _ADS1115(ADS1115):
     Extended ADS1115 interface with builtin convenience for configuration and reading
     """
     bits = 16
-    levels = 1 >> bits
+    levels = 1 << bits
     max_level = (levels >> 1) - 1
     min_level = levels >> 1
     pga_map = {2 / 3: 6.144,  # map of gain values vs max peak readable voltage
@@ -166,6 +166,9 @@ class _ADS1115(ADS1115):
         """
         return level * self.step_size
 
+    def voltage2level(self, voltage: float) -> int:  # todo: check if round or int division
+        return round(voltage / self.step_size)
+
 
 # dac wrapper
 class _MCP4725(MCP4725):
@@ -191,10 +194,21 @@ class _MCP4725(MCP4725):
 
     def set_voltage(self, voltage):
         self.value_history.append(self.value)
-        self.value = round(voltage / self.step_size)
+        self.value = self.voltage2level(voltage)
         super().set_voltage(self.value)
 
-        # noinspection SpellCheckingInspection
+    def level2voltage(self, level: int) -> float:
+        """
+
+        :type level: int
+        :param level: raw reading from ADC converted to voltage
+        :rtype: float
+        :return: translated value
+        """
+        return level * self.step_size
+
+    def voltage2level(self, voltage: float) -> int:  # todo: check if round or int division
+        return round(voltage / self.step_size)
 
 
 # setup wrapper for actuator
@@ -224,8 +238,11 @@ class Actuator:
         self.speed_controller = speed_controller
         self.force_sensor = force_sensor
         self.distance_per_level = self.distance_per_volt * self.position_sensor.step_size
-        self.pos_limit_low = pos_limits.pop('low', 10)
-        self.pos_limit_high = pos_limits.pop('high', 26000)
+        self.pos_limit_low = 10
+        self.pos_limit_high = 26000
+        if pos_limits is not None:
+            self.pos_limit_low = pos_limits.pop('low', self.pos_limit_low)
+            self.pos_limit_high = pos_limits.pop('high', self.pos_limit_high)
         self.units = units
 
     @property
@@ -347,11 +364,3 @@ def set_config():
 
 def load_config(config):
     pass
-
-
-def register_routine():
-    return None
-
-
-def register_action():
-    return None

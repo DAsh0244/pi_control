@@ -2,16 +2,30 @@
 # contains definitions for the various controllers and control logic
 #
 # usage:
-# from controller import control_map
+# import controller
 # ...
-# controller = control_map[<controller_index>]
+# controller =
+# within actions, use the controller as such
+#
+# done = False
+# def get_input():
+#     return adc.level2voltage(adc.read_single())
+# def scale_output(outval):
+#     return dac.voltage2level(outval)
+# ctrl = controller(<constant1>...<constantN>, input_func=get_input, output_func=scale_output)
+# for target in (Point(0,0.1,0), Point(1,0.1,1)):  # list of positions to achieve
+#     controller.ref = target
+#     while abs(target.position - get_input()) > target.error:
+#         controller.process()
+#
 
 from abc import ABC, abstractmethod
 from collections import deque, namedtuple
 
-Point = namedtuple('Point', 'time error')
+Point = namedtuple('Point', 'time error position')
 
 
+# TODO: CONTROLLER REWORK
 class ControllerBase(ABC):
     def __init__(self, input_func: function, output_func: function, desired_reference: float = 0.0,
                  history_len: int = 20):
@@ -31,13 +45,13 @@ class ControllerBase(ABC):
         self.err = 0  # safer to start from 0
 
     @abstractmethod
-    def process(self, time_val):
-        self.err = self.ref - self.input
-        self.history.append(Point(time_val, self.err))
-
     def update(self, time_val):
+        self.err = self.ref - self.input
+        self.history.append(Point(time_val, self.err, self.input))
+
+    def process(self, time_val):
         self.input = self.get_input()
-        self.process(time_val)
+        self.update(time_val)
         self.send_output(self.out)
 
 
@@ -46,8 +60,8 @@ class PController(ControllerBase):
         self.kp = kp
         super().__init__(*args, **kwargs)
 
-    def process(self, time_val):
-        super().process(time_val)
+    def update(self, time_val):
+        super().update(time_val)
         self.out = self.err * self.kp
 
 
@@ -57,8 +71,8 @@ class PDController(ControllerBase):
         self.kd = kd
         super().__init__(*args, **kwargs)
 
-    def process(self, time_val):
-        super().process(time_val)
+    def update(self, time_val):
+        super().update(time_val)
         last_state = self.history[-2]  # -1 b/c super call appends to history
         p_correction = self.err * self.kp
         d_correction = (self.err - last_state.error) / (time_val - last_state.time) * self.kd
@@ -72,8 +86,8 @@ class PIController(ControllerBase):
         self.acc = 0
         super().__init__(*args, **kwargs)
 
-    def process(self, time_val):
-        super().process(time_val)
+    def update(self, time_val):
+        super().update(time_val)
         self.acc += self.err * time_val
         p_correction = self.err * self.kp
         i_correction = self.acc * self.ki
@@ -88,8 +102,8 @@ class PIDController(ControllerBase):
         self.acc = 0
         super().__init__(*args, **kwargs)
 
-    def process(self, time_val):
-        super().process(time_val)
+    def update(self, time_val):
+        super().update(time_val)
         self.acc += self.err * time_val
         last_state = self.history[-2]  # -1 b/c super call appends to history
         p_correction = self.err * self.kp
