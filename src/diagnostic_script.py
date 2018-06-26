@@ -9,11 +9,14 @@ from time import (
     perf_counter,
     # sleep,
 )
-
 # noinspection PyUnresolvedReferences
-from libs.version import version as __version__
-from libs.utils import cfg_formatter
-from libs.controller import CONTROL_MAP
+from libs.utils import cfg_formatter, get_k_value
+from libs.controller import (
+    PController,
+    PDController,
+    PIController,
+    PIDController
+)
 from launch.cli_parser import (
     parser,
     cmds,
@@ -139,19 +142,24 @@ def calibrate_position():
 
 
 def set_controller():
+    control_map = {1: None, 2: PController, 3: PDController, 4: PIController, 5: PIDController}
     global CONTROLLER
-    valid_choices = set(map(str, CONTROL_MAP.keys()))
+    spaces = ' ' * 5
+    valid_choices = set(map(str, control_map.keys()))
     print('set desired controller')
     print('valid choices:')
-    print('1. No adaptive control')
-    print('2. P control')
-    print('3. PD control')
-    print('4. PI control')
-    print('5. PID control')
+    print(spaces + '\n{}'.format(spaces).join(['{!s}: {!s}'.format(k, getattr(v, '__name__', v))
+                                               for k, v in control_map.items()]))
     choice = input('Enter controller choice: ').strip()
-    while choice not in valid_choices:
+    while choice not in valid_choices:  # delay int conversion to handle invalid string inputs
         choice = input('Enter controller choice: ').strip()
-    CONTROLLER = CONTROL_MAP[int(choice)]
+    controller = control_map[int(choice)]
+    if controller is None:
+        return
+    coefficients = {k: 0.0 for k in controller.coefficients}
+    for coefficient in controller.coefficients:
+        coefficients[coefficient] = get_k_value(coefficient)
+    CONTROLLER = controller(**coefficients)
 
 
 def test_configurations():
@@ -231,12 +239,12 @@ def calibrate():
             test currently generated scheme
             editing any single point generated
 
-    7 step update:
+    7 step process:
         1. define abs low (leave alone if limit switch)
         2. define abs high (leave alone if limit switch)
         3. define desired stroke low threshold
         4. define desired stroke high threshold
-        5. define control (P,PD, None)
+        5. define controller
         6. define desired actuator movement rates
         6.5. test current setup -- tweak values as wanted
         7. confirm cal data
@@ -244,7 +252,7 @@ def calibrate():
     # calibrate thresholds:
     calibrate_position()
     # set control scheme:
-    # set_controller()
+    set_controller()
     # test:
     test_configurations()
     # reconfigure -- optional
@@ -352,15 +360,15 @@ def dispatcher(arg_dict):
         global TIMEOUT, OUTFILE
         cfg = load_config(arg_dict['config'])
         # coalesce = lambda key: cfg[key] or arg_dict[key]
-        arg_dict.update({'timeout': cfg['TIMEOUT'] or arg_dict['timeout'],
+        arg_dict.calc_correction({'timeout': cfg['TIMEOUT'] or arg_dict['timeout'],
                          'sample_rate': cfg['adc.sample_rate'] or arg_dict['sample_rate'],
                          'outfile': cfg['OUTFILE'] or arg_dict['outfile'],
                          'units': cfg['UNITS'] or arg_dict['units'],
                          'high_max': cfg['POS_LIMIT_HIGH'] or arg_dict['high_max'],
                          'low_min': cfg['POS_LIMIT_LOW'] or arg_dict['low_min'],
                          'high_threshold': cfg['POS_THRESHOLD_HIGH'] or arg_dict['high_threshold'],
-                         'low_threshold': cfg['POS_THRESHOLD_LOW'] or arg_dict['low_threshold'],
-                         })
+                                  'low_threshold': cfg['POS_THRESHOLD_LOW'] or arg_dict['low_threshold'],
+                                  })
         adc.sample_rate = arg_dict['sample_rate']
         TIMEOUT = arg_dict['timeout']
         OUTFILE = arg_dict['outfile']

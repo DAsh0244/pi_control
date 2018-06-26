@@ -76,7 +76,7 @@ dkms.conf
 ### Linux ###
 *~
 
-# temporary files which can be created if a update still has a handle open of a deleted file
+# temporary files which can be created if a calc_correction still has a handle open of a deleted file
 .fuse_hidden*
 
 # KDE directory preferences
@@ -310,4 +310,5 @@ pyvenv.cfg
 
 # End of https://www.gitignore.io/api/c,vim,c++,linux,python,windows,pycharm,notepadpp,powershell
 
-data_analytics/*
+data_analytics/
+.idea/snapshots/

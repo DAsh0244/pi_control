@@ -24,7 +24,7 @@ import sys
 import yaml
 from argparse import ArgumentParser
 
-from libs.version import version as __version__
+from version import version as __version__
 from libs.hal import adc, set_config, actuator
 from routines import register_routine, register_action
 
@@ -45,7 +45,7 @@ actions = {'RESET_MIN': 'reset_min',
 parser = ArgumentParser()  # 'elastocaloric testing'
 subparsers = parser.add_subparsers(help='Action to take', dest='cmd')
 parser.add_argument('-V', '--version', action='version', version='%(prog)s {}'.format(__version__))
-parser.add_argument('-t', '--timeout', type=int, default=5, help='set timout for loop')
+parser.add_argument('-t', '--timeout', type=int, default=5, help='set timeout for loop')
 parser.add_argument('-r', '--sample_rate', type=int, choices=sorted(adc.accepted_sample_rates),
                     default=adc.sample_rate, help='Sample rate for adc (sps)')
 parser.add_argument('-o', '--outfile', type=str, default=None, help='optional file to save results to')
@@ -76,7 +76,7 @@ pos_subparsers.add_parser(actions['RESET_MIN'], help='reset to minimum extension
 pos_subparsers.add_parser(actions['RESET_MAX'], help='reset to max extension')
 
 goto_parser = pos_subparsers.add_parser('goto_pos', help='go to desired position')
-goto_parser.add_argument('position', type=int, default=adc.levels // 2,
+goto_parser.add_argument('position', type=int, default=adc.levels >> 1,
                          help='position value between 0 and {}'.format(adc.max_level))
 
 monitor_parser = subparsers.add_parser(cmds['RUN_ACQ'], add_help=False, help='run acquisition')
@@ -98,8 +98,6 @@ def load_config(path):
         docs = yaml.load_all(file)
         cfg = {}
         for doc in docs:
-            # print(doc)
-            # print('')
             cfg = eval(repr(doc))
             # DOC_DISPATCHER[doc.__type](doc)
         return cfg
@@ -154,14 +152,6 @@ class Action(yaml.YAMLObject, ReprMixIn):
     def __init__(self, name, params=None):
         self.action = actions[name]
         self.params = params
-
-
-class LookUpTable(yaml.YAMLObject, ReprMixIn):
-    yaml_tag = '!LUT'
-    __type = 'LUT'
-
-    def __init__(self, lut):
-        self.lut = lut
 
 
 if __name__ == '__main__':
