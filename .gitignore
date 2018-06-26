@@ -310,6 +310,5 @@ pyvenv.cfg
 
 # End of https://www.gitignore.io/api/c,vim,c++,linux,python,windows,pycharm,notepadpp,powershell
 
-testing/test.txt # test output files
-testing/test.json# test output files
 data_analytics/
+.idea/snapshots/
