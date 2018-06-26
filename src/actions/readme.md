@@ -10,8 +10,8 @@ Using the `from <module> import <action>` syntax.
 Actions are the basic unit of operation in a full procedure.
 At their basis they are an optionally parametrized call to a function/method that accomplishes a small task.
 
-For the more technically inclined they are a partial implementation of a finite state machine that is completed with actions,
-with the other half being accomplished by [routines](../routines/readme.md).
+For the more technically inclined they are a partial implementation of a finite state machine that is
+completed with actions, with the other half being accomplished by [routines](../routines/readme.md).
 While actions can be likened to states, routines are analogous to transition tables.
 
 Examples of some actions are:
@@ -60,13 +60,18 @@ ROUTINES: &ROUTINES
 ```
 
 ## Technical Details:
-Procedures are implemented as asynchronous [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine). i.e. States are only changed when actions trigger a transition either upon completion or as specified. This implementation provides a very flexible and intuitive method of designing arbitrary procedures.
+Procedures are implemented as asynchronous
+[finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine).
+i.e. States are only changed when actions trigger a transition either upon completion or as specified.
+This implementation provides a very flexible and intuitive method of
+designing arbitrary cause and effect procedures.
 
 
 ### Implementation
 
 #### Basics:
-Actions are implemented as python function calls. These are then passed to a master controller that executes a full procedure.
+Actions are implemented as python function calls.
+These are then passed to a master controller that executes a full procedure.
 
 Conventions for actions are:
 
@@ -112,7 +117,9 @@ while current_action is not None:
 - **More Detailed Explanation if needed**
 
 
+
 [//]:#(refs)
 
 [yaml]: (https://learnxinyminutes.com/docs/yaml/)
+
 [init.py]: (__init__.py)

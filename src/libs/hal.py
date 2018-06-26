@@ -169,6 +169,9 @@ class _ADS1115(ADS1115):
     def voltage2level(self, voltage: float) -> int:  # todo: check if round or int division
         return round(voltage / self.step_size)
 
+    def stop(self):
+        super().stop_adc()
+
 
 # dac wrapper
 class _MCP4725(MCP4725):
@@ -331,6 +334,11 @@ class Actuator:
         else:
             return pos
 
+    def reset_max(self):
+        self.set_position(self.pos_limit_high)
+
+    def reset_min(self):
+        self.set_position(self.pos_limit_low)
 
 # instantiate HW
 adc = _ADS1115(default_channel=1)

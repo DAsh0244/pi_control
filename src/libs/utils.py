@@ -63,3 +63,9 @@ def get_k_value(k_subscript):
             return k
         except ValueError:
             pass
+
+
+class ReprMixIn:
+    def __repr__(self):
+        return '{!s}({!s})'.format(self.__class__.__name__,
+                                   ', '.join('{!s}={!r}'.format(k, v) for k, v in vars(self).items()))
