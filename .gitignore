@@ -312,3 +312,4 @@ pyvenv.cfg
 
 testing/test.txt # test output files
 testing/test.json# test output files
+data_analytics/
