@@ -1,0 +1,5 @@
+transistions==0.6.8
+six==1.11.0
+RPi.GPIO==0.6.3
+Adafruit-ADS1x15==1.0.2
+Adafruit-MCP4725==1.0.2

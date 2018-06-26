@@ -1,0 +1,36 @@
+# global configuration parameters
+CONFIG: &CONFIG !Config
+  version: 0.0.1
+  units: raw
+  lower_limit: &LIMIT_LOW 0
+  upper_limit: &LIMIT_HIGH 20000
+  adc_sample_rate: 860
+  adc_gain: 1
+  adc_channel: 1
+# begin routine definitions
+ROUTINES: &ROUTINES
+  - !Routine
+    name: reset_min
+    units: raw
+    actions:
+      - !Action
+          name: RESET_MIN
+          params:
+            low: *LIMIT_LOW
+            high: *LIMIT_HIGH
+      - !Action
+          name: CLEANUP
+  - !Routine
+    name: reset_max
+    units: raw
+    output: stdout
+    actions:
+      - !Action
+          name: RESET_MAX
+          params:
+            pos:
+              - 1
+              - 2
+              - 3
+      - !Action
+          name: CLEANUP
