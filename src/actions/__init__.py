@@ -12,7 +12,10 @@ Description:
 """
 # prototype action function signature:
 #
-# def some_action(interface: obj, params: dict, nxt: dict) -> Callable:
+# from typing import Callable
+#
+#
+# def some_action(interface: object, params: dict, nxt: (dict, None)) -> (Callable, None):
 #     """
 #     Action description
 #     ...
@@ -25,15 +28,16 @@ Description:
 #     condition = None
 #     # stuff happens here -- eval and assign the desired value for condition
 #     ...
-#     return next[condition]
-#
+#     return nxt.get(condition, nxt)
 
 from .calibrate import calibrate
 from .reset_max import reset_max
 from .reset_min import reset_min
+from .cleanup import cleanup
+from .set_pos import set_pos
 
-actions = {'RESET_MIN': 'reset_min',
-           'RESET_MAX': 'reset_max',
-           'GOTO_POS': 'set_pos',
-           'CLEANUP': 'cleanup',
+actions = {'RESET_MIN': reset_min,
+           'RESET_MAX': reset_max,
+           'GOTO_POS': set_pos,
+           'CLEANUP': cleanup,
            }

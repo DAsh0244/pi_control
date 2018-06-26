@@ -24,7 +24,6 @@ from typing import Iterable
 
 class BaseYaml(yaml.YAMLObject, ReprMixIn):
     type = None
-    pass
 
 
 class Action(BaseYaml):
