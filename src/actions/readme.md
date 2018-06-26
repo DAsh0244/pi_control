@@ -82,21 +82,24 @@ Conventions for actions are:
 All actions share a few elements in their declaration:
 
 ```python
-def some_action(interface: obj, params: dict, next: dict) -> Callable:
+from typing import Callable
+
+
+def some_action(interface: object, params: dict, nxt: (dict, None)) -> (Callable, None):
     """
     Action description
-
+    ...
     :param interface: base interface abstraction layer that is performing an action.
     :param params: dictionary of the form
     	{'param0':<val>, 'param1':<val>, ..., 'paramN':<val>}
-    :param next: dictionary of state transitions in the form
+    :param nxt: dictionary of state transitions in the form
     	{<condition>:<action_func>, <condition>:<action_func>, None:<action_func>}
     """
     condition = None
     # stuff happens here -- eval and assign the desired value for condition
     ...
+    return nxt.get(condition, nxt)
 
-    return next[condition]
 ```
 
 As we can see, all actions return the next state to be executed by the controller.
