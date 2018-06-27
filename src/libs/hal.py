@@ -241,7 +241,7 @@ class Actuator:
         self.speed_controller = speed_controller
         self.force_sensor = force_sensor
         self.distance_per_level = self.distance_per_volt * self.position_sensor.step_size
-        self.pos_limit_low = 10
+        self.pos_limit_low = 5000
         self.pos_limit_high = 26000
         if pos_limits is not None:
             self.pos_limit_low = pos_limits.pop('low', self.pos_limit_low)
@@ -313,11 +313,17 @@ class Actuator:
                 if passed:
                     self.speed_controller.set_level(self.speed_controller.value >> 1)
                     passed = False
+                else:
+                    print('passed high target')
+                    passed = True
             else:  # not far enough, go forward
                 self.set_actuator_dir('forward')
                 if passed:
                     self.speed_controller.set_level(self.speed_controller.value >> 1)
                     passed = False
+                else:
+                    print('passed low target')
+                    passed = True
 
     def level2position(self, level: int, units: str = 'in') -> float:
         """
@@ -361,6 +367,7 @@ def hal_init():
 
 
 def hal_cleanup():
+    print('cleanup')
     dac.set_voltage(dac.stop)
     adc.stop_adc()
     GPIO.cleanup()

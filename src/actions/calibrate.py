@@ -12,9 +12,10 @@ Description:
 """
 import os
 
-from diagnostic_script import WAIT_TIMEOUT, save_config
 from libs.controller import PController, PDController, PIController, PIDController
-from libs.utils import get_k_value
+from libs.utils import get_k_value, save_config
+
+WAIT_TIMEOUT = 2
 
 
 def calibrate_position(actuator_interface):

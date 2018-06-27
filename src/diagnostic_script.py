@@ -7,13 +7,12 @@ from time import strftime, perf_counter  # , sleep
 
 from actions import actions
 from launch import parser, cmds
-from libs.utils import cfg_formatter
+from libs.utils import load_config
 from actions.calibrate import calibrate
 from libs.hal import (
     adc,
     dac,
     PINS,
-    UNITS,
     GPIO,
     actuator,
     hal_init,
@@ -124,37 +123,6 @@ def monitor_adc_file(outfile, timeout, **kwargs):
     adc.stop_adc()
     LOGFILE.close()
     dac.set_voltage(dac.stop)
-
-
-# util funcs
-# config handling
-def load_config(cfg_path):
-    with open(cfg_path, 'r') as cfg_file:
-        config = cfg_formatter.load(cfg_file)
-    # for key, val in config.items():
-    #     globals()[key] = val
-    return config
-    # from pprint import pprint
-    # pprint(globals())
-
-
-def save_config(cfg_path):
-    with open(cfg_path, 'w') as cfg_file:
-        cfg_formatter.dump({'POS_LIMIT_LOW': actuator.pos_limit_low,
-                            'POS_LIMIT_HIGH': actuator.pos_limit_high,
-                            'POS_THRESHOLD_LOW': actuator.pos_threshold_low,
-                            'POS_THRESHOLD_HIGH': actuator.pos_threshold_high,
-                            'SAMPLE_RATE': adc.sample_rate,
-                            'TIMEOUT': TIMEOUT,
-                            'UNITS': UNITS,
-                            'OUTFILE': OUTFILE,
-                            },
-                           cfg_file
-                           )
-
-
-def edit_config(cfg_path):
-    pass
 
 
 def dispatcher(arg_dict):

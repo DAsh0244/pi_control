@@ -11,8 +11,6 @@ License: N/A
 Description: 
 """
 
-if __name__ == '__main__':
-    pass
 cmds = {'TEST_ADC': 'test_adc',
         'TEST_DAC': 'test_dac',
         'TEST_CAL': 'test_cal',

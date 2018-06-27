@@ -10,11 +10,12 @@ Copyright (c):  2018 Danyal Ahsanullah
 License: N/A
 Description: 
 """
+
 from libs.hal import actuator
 
 
 def reset_min(interface=actuator, params=None, nxt=None):
     if nxt is None:
-        nxt = {'true': None}
+        nxt = {'success': None}
     interface.reset_min()
-    return nxt['true']
+    return nxt['success']

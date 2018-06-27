@@ -40,4 +40,6 @@ actions = {'RESET_MIN': reset_min,
            'RESET_MAX': reset_max,
            'GOTO_POS': set_pos,
            'CLEANUP': cleanup,
+           None: lambda: None,
+           'None': lambda: None,
            }

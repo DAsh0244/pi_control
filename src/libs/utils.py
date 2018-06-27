@@ -65,7 +65,31 @@ def get_k_value(k_subscript):
             pass
 
 
-class ReprMixIn:
-    def __repr__(self):
-        return '{!s}({!s})'.format(self.__class__.__name__,
-                                   ', '.join('{!s}={!r}'.format(k, v) for k, v in vars(self).items()))
+def load_config(cfg_path):
+    with open(cfg_path, 'r') as cfg_file:
+        config = cfg_formatter.load(cfg_file)
+    # for key, val in config.items():
+    #     globals()[key] = val
+    return config
+    # from pprint import pprint
+    # pprint(globals())
+
+
+def save_config(cfg_path):
+    pass
+    # with open(cfg_path, 'w') as cfg_file:
+    #     cfg_formatter.dump({'POS_LIMIT_LOW': actuator.pos_limit_low,
+    #                         'POS_LIMIT_HIGH': actuator.pos_limit_high,
+    #                         'POS_THRESHOLD_LOW': actuator.pos_threshold_low,
+    #                         'POS_THRESHOLD_HIGH': actuator.pos_threshold_high,
+    #                         'SAMPLE_RATE': adc.sample_rate,
+    #                         'TIMEOUT': 10,
+    #                         'UNITS': UNITS,
+    #                         'OUTFILE': 'test.txt',
+    #                         },
+    #                        cfg_file
+    #                        )
+
+
+def edit_config(cfg_path):
+    pass
