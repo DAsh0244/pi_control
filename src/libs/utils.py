@@ -5,6 +5,7 @@
 import warnings as _warnings
 from random import randint as _randint
 # noinspection PyUnresolvedReferences
+import yaml
 import yaml as cfg_formatter
 
 
@@ -93,3 +94,11 @@ def save_config(cfg_path):
 
 def edit_config(cfg_path):
     pass
+
+
+class BaseYamlConstruct(yaml.YAMLObject):
+    type = None
+
+    def __repr__(self):
+        return '{!s}({!s})'.format(self.__class__.__name__,
+                                   ', '.join('{!s}={!r}'.format(k, v) for k, v in vars(self).items()))

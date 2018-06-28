@@ -32,5 +32,5 @@ Routines are implemented as python function calls. The convention is
 - one routine in a module/file
 - import said module into the `__init_.py` file
 - you can now use the routine in your `yaml` configuration files via the `!Routine` directive
-[docs](../../docs/routines.md)
+[docs]: ../../docs/routines.md
 

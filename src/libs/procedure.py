@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 """
 pi_control
-procedure_state_machine.py
+procedure.py
 Author: Danyal Ahsanullah
 Date: 6/26/2018
 Copyright (c):  2018 Danyal Ahsanullah
@@ -20,6 +20,7 @@ from typing import List
 
 from actions import actions
 from libs.hal import set_config
+from libs.utils import BaseYamlConstruct
 
 
 # import logging
@@ -27,15 +28,6 @@ from libs.hal import set_config
 # logging.basicConfig(level=logging.DEBUG)
 # # Set transitions' log level to INFO; DEBUG messages will be omitted
 # logging.getLogger('transitions').setLevel(logging.INFO)
-
-
-# noinspection SpellCheckingInspection
-class BaseYamlConstruct(yaml.YAMLObject):
-    type = None
-
-    def __repr__(self):
-        return '{!s}({!s})'.format(self.__class__.__name__,
-                                   ', '.join('{!s}={!r}'.format(k, v) for k, v in vars(self).items()))
 
 
 class Action(BaseYamlConstruct):
@@ -167,18 +159,24 @@ def load_config(path):
         for doc in docs:
             cfg = eval(repr(doc))
             pprint(cfg)
-            for routine in cfg['ROUTINES']:
-                for step in routine.steps:
-                    current_step = step
-                    print(current_step)
-                    if current_step is not END_ACTION:
-                        current_step = current_step.execute()
-                        print(current_step)
-                # pprint(routine.generate_states())
-                # interact(local=locals())
+        #         pprint(routine.generate_states())
+        #         interact(local=locals())
         # DOC_DISPATCHER[doc.__type](doc)
         return cfg
 
 
+def execute_routine(cfg):
+    for routine in cfg['ROUTINES']:
+        for step in routine.steps:
+            current_step = step
+            print(current_step)
+            if current_step is not END_ACTION:
+                current_step = current_step.execute()
+                print(current_step)
+        print('')
+
+
 if __name__ == '__main__':
-    load_config('../../test/test_config.yaml')
+    config = load_config('../../test/test_config.yaml')
+    print('')
+    execute_routine(config)

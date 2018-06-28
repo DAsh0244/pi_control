@@ -1,10 +1,11 @@
 # hal.py
+from collections import deque as _deque
+
 from libs.utils import (
     nop as _nop,
     sop as _sop,
     in2mm
 )
-from collections import deque as _deque
 
 # import hardware interfaces
 try:
@@ -15,7 +16,6 @@ except ImportError:
     from random import randint as _randint
 
     _warnings.warn('failed to load RPi.GPIO, using stub class for syntax checking', RuntimeWarning)
-
 
     # noinspection PyUnusedLocal
     class GPIO:
@@ -88,7 +88,7 @@ class _ADS1115(ADS1115):
     accepted_channels = {0, 1, 2, 3}
 
     def __init__(self, sample_rate: int = 128, gain: int = 1, vcc: float = GLOBAL_VCC, default_channel: int = 0,
-                 *extra, alert_pin: int = 21, history_len: int = 20):
+                 alert_pin: int = 21, history_len: int = 20):
         """
         initialize the ADS1115 interface
         :type history_len: int
@@ -259,7 +259,7 @@ class Actuator:
     @property
     def load(self) -> int:
         load = self.force_sensor.get_last_result()
-        return 4  # guaranteed random todo: work on implementing this
+        return load  # guaranteed random todo: work on implementing this
 
     @staticmethod
     def set_actuator_dir(direction: str) -> None:
@@ -346,6 +346,7 @@ class Actuator:
     def reset_min(self):
         self.set_position(self.pos_limit_low)
 
+
 # instantiate HW
 adc = _ADS1115(default_channel=1)
 dac = _MCP4725()
@@ -367,7 +368,6 @@ def hal_init():
 
 
 def hal_cleanup():
-    print('cleanup')
     dac.set_voltage(dac.stop)
     adc.stop_adc()
     GPIO.cleanup()
@@ -377,5 +377,6 @@ def set_config():
     return None
 
 
+# noinspection PyUnusedLocal
 def load_config(config):
     pass

@@ -15,5 +15,6 @@ from libs.hal import hal_cleanup
 
 
 def cleanup(interface=None, params=None, nxt=None):
+    print('cleanup')
     hal_cleanup()
     return nxt
