@@ -228,7 +228,8 @@ class Actuator:
                          }  # key is force (lbs)
     distance_per_volt = stroke / pot_voltage
 
-    def __init__(self, position_sensor, speed_controller, force_sensor, pos_limits: dict = None, units: str = 'raw'):
+    def __init__(self, position_sensor, speed_controller, force_sensor, pos_limits: dict = None, units: str = 'raw',
+                 movement_controller=None):
         """
         create an actuator interface
         :param position_sensor: ADC handle for position
@@ -243,10 +244,12 @@ class Actuator:
         self.distance_per_level = self.distance_per_volt * self.position_sensor.step_size
         self.pos_limit_low = 5000
         self.pos_limit_high = 26000
+        self.units = units
         if pos_limits is not None:
             self.pos_limit_low = pos_limits.pop('low', self.pos_limit_low)
             self.pos_limit_high = pos_limits.pop('high', self.pos_limit_high)
-        self.units = units
+        if movement_controller is not None:
+            self.movement_controller = movement_controller
 
     @property
     def position(self) -> int:
