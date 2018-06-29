@@ -113,9 +113,9 @@ In General, it may be useful to think of actions as only understanding two parts
 
 #### Nuts-n-Bolts:
 
-Above I mentioned that actions "understand...Where am I supposed to go next?". This is not exactly true. A more correct statement would be th say the `Action` knows which "path" to go down. What defines this path you ask? The _**writer**_ of the action function. Within the action function, you may change the `condition` variable's contents to a string matching a key in the `nxt` mapping to determine what the next action is.
+Above I mentioned that actions "understand...Where am I supposed to go next?". This is not exactly true. A more correct statement would be th say the `Action` knows which "path" to go down. What defines this path you ask? The _**writer**_ of the action function. Within the action function, you may change the `condition` variable's contents to a string matching a key in the `nxt` mapping to determine what the next action is. 
 
-Let's look at (arguably) the simplest type of example to see `Action`. The `delay` action.
+Let's look at (arguably) the simplest type of example to see `Action`. The `delay` action. 
 
 ```python
 from time import sleep
@@ -127,13 +127,44 @@ def delay(interface=None, params=None, nxt=None):
 	if nxt is None:
         nxt = {'success': None}  # None as a value indicates a termination of the action chain.
     sleep(params['timeout'])
-    return nxt['success'] # action completed successfully
+    return nxt['success'] # action completed successfully 
 ```
 As we can see, this function returns the `success` action regardless of anything save an `Exception`.
 
 Compare the `delay` action to the more complex `oscillate` action:
 ```python
+from hal import actuator
+from time import perf_counter
 
+def oscillate(interface=actuator, params=None, nxt=None):
+    """
+    moves from thresholds described in params dict with keys of 'low_pos', 'high_pos'.
+    movement speed is defined in params dict as well with the 'speed' key. 
+    adaptive controller is optinoally specifed with the 'controller' key.
+    the ability to end oscilation at a specified threshold is avaible with the 
+    'reset_closest' key, which expects a boolean True or False value. If not specified, defaults to False
+    mutually exlusive number of osillations and timeout are also optional params.
+    if both are specified, it will stop at whatever comes first.
+      - timeout is specified with the 'timeout' key and expects a float.
+      - repititions is specified with the 'repititions' key and expects an int.
+    
+    """
+    if nxt is None:
+        nxt = {'success': None} 
+    condition = 'success'
+    low_pos = params['low_pos']
+    high_pos = params['high_pos']
+    timeout = params.get('timeout', None)
+    repititions = params.get('repititions', None)
+    repeats = 0
+    start = perf_counter()
+    while ((perf_conter() - start) < timeout) or (repeats < repititions):
+        interface.set_position(low_pos)
+        interface.set_position(high_pos)
+	if params.get('reset_closest', False) and abs(interface.position - low_pos) > abs(interface.position - high_pos):  # is closer to lower spot than higher spot
+        interface.set_position(low_pos)
+    
+    return nxt[condition]
 ```
 
 
