@@ -8,10 +8,12 @@ Author: Danyal Ahsanullah
 Date: 6/29/2018
 Copyright (c):  2018 Danyal Ahsanullah
 License: N/A
-Description:
+Description: library for interfacing the Sparkfun OpenScale.
 """
 
 import serial
+from functools import wraps
+from typing import Tuple, Dict, Union
 
 
 class OpenScale(serial.Serial):
@@ -19,22 +21,22 @@ class OpenScale(serial.Serial):
     BAUD_MAX = 1000000
     # prompt for initial opening of config menu:
     #
-    # b'1) Tare scale to zero [\d+]\n'\
-    # b'2) Calibrate scale[\d+]\n'\
-    # b'3) Timestamp [On|Off]\n'\
-    # b'4) Set report rate [\d+]\n'\
-    # b'5) Set baud rate [\d+ bps]\n'\
-    # b'6) Change units of measure [lbs|kg]\n'\
-    # b'7) Decimals [\d+]\n'\
-    # b'8) Average amount [\d+]\n'\
-    # b'9) Local temp [On|Off]\n'\
-    # b'r) Remote temp [On|Off]\n'\
-    # b's) Status LED [Blink|Off]\n'\
-    # b't) Serial trigger [On|Off]\n'\
-    # b'q) Raw reading [On|Off]\n'\
-    # b'c) Trigger character: [\d+]\n'\
-    # b'x) Exit'\
-    # b'>\n'
+    # b'1) Tare scale to zero [\d+]\r\n'\
+    # b'2) Calibrate scale[\d+]\r\n'\
+    # b'3) Timestamp [On|Off]\r\n'\
+    # b'4) Set report rate [\d+]\r\n'\
+    # b'5) Set baud rate [\d+ bps]\r\n'\
+    # b'6) Change units of measure [lbs|kg]\r\n'\
+    # b'7) Decimals [\d+]\r\n'\
+    # b'8) Average amount [\d+]\r\n'\
+    # b'9) Local temp [On|Off]\r\n'\
+    # b'r) Remote temp [On|Off]\r\n'\
+    # b's) Status LED [Blink|Off]\r\n'\
+    # b't) Serial trigger [On|Off]\r\n'\
+    # b'q) Raw reading [On|Off]\r\n'\
+    # b'c) Trigger character: [\d+]\r\n'\
+    # b'x) Exit'\r\n\
+    # b'>'
 
     prompt_indexes = (
         ('tare', 23),
@@ -53,23 +55,29 @@ class OpenScale(serial.Serial):
         ('trigger_char', 24),
     )
 
-    end_interactive_prompt = b'>\n'
-
-    def __init__(self, report_rate: int = 200, units: str = 'kg', *args, **kwargs):
+    def __init__(self, tare: int = 0, tare_val_1: int = 0, tare_val_2: int = 0, cal_value: int = 0,
+                 timestamp_enable: bool = True,
+                 report_rate: int = 200, units: str = 'kg', decimal_places: int = 4, num_avgs: int = 4,
+                 local_temp_enable: bool = False, remote_temp_enable: bool = False, status_led: bool = True,
+                 serial_trigger_enable: bool = True, raw_reading_enable: bool = True, trigger_char: bytes = b'0',
+                 *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._trigger_char: bytes = b'0'
-        self._cal_value: int = 0
-        self.report_rate: int = report_rate
-        self.decimal_places = 0
-        self._num_avgs = 3
-
-        self._timestamp_enable: bool = True
-        self._local_temp_enable: bool = False
-        self._remote_temp_enable: bool = False
-        self._serial_trigger_enable: bool = True
-        self._raw_reading_enable: bool = True
-        self._status_lef = True
-
+        self._tare: int = tare
+        self._tare_val_1: int = tare_val_1
+        self._tare_val_2: int = tare_val_2
+        self._cal_value: int = cal_value
+        self._timestamp_enable: bool = timestamp_enable
+        self._report_rate: int = report_rate
+        self._units: str = units
+        self._decimal_places: int = decimal_places
+        self._num_avgs: int = num_avgs
+        self._local_temp_enable: bool = local_temp_enable
+        self._remote_temp_enable: bool = remote_temp_enable
+        self._status_led: bool = status_led
+        self._serial_trigger_enable: bool = serial_trigger_enable
+        self._raw_reading_enable: bool = raw_reading_enable
+        self._trigger_char: bytes = trigger_char
+        # input command mapping
         self.cmds = {
             'open_menu': b'x',  # no eol
             'close_menu': b'x',  # no eol
@@ -90,18 +98,69 @@ class OpenScale(serial.Serial):
             'raw_reading': b'q',  # no eol, toggles between enabled/disabled
             'trigger_char': b'c',  # no eol, next char entered is the new trigger char
         }
-        if not self.is_open:
-            self.open()
+        self.load_config_from_device()
 
-        self.write(self.cmds['open_menu'])
+    def session(self, func):
+        """
+        decorator to ensure a complete session of editing the OpenScale
+        """
+
+        @wraps(func)
+        def wrapper():
+            if not self.is_open:
+                self.open()
+            # keep separate to help timings
+            self.reset_output_buffer()
+            self.write(self.cmds['open_menu'])
+            self.flush()
+            self.reset_input_buffer()
+            try:
+                return func()
+            except Exception as e:
+                print(e)
+            finally:
+                self.write(self.cmds['close_menu'])
+
+        return wrapper
+
+    @session
+    def load_config_from_device(self):
         res = self.parse_menu_response()
-        if res['units'] != units:
-            self.write(self.cmds['units'])
-        self.tare()
+        # noinspection SpellCheckingInspection
+        self.baudrate = res['baud']
+        self._tare = res['tare']
+        self._timestamp_enable = res['timestamp']
+        self._local_temp_enable = res['local_temp_enable']
+        self._remote_temp_enable = res['remote_temp_enable']
+        self._cal_value = res['calibrate']
+        self._report_rate = res['report_rate']
+        self._units = res['units']
+        self._decimal_places = res['decimal_places']
+        self._num_avgs = res['num_avg']
+        self._status_led = res['status_led']
+        self._serial_trigger_enable = res['serial_trigger_enable']
+        self._raw_reading_enable = res['raw_reading']
+        self._trigger_char = res['trigger_char']
 
+    @session
     def parse_menu_response(self):
-        raw_res = self.read_until(b'>\n').decode("utf-8").split('\n')
-        res = {}
+        raw_res = self.read_until(b'>').decode("utf-8").split('\r\n')
+        res = {
+            'tare': None,
+            'calibrate': None,
+            'timestamp': None,
+            'report_rate': None,
+            'baud': None,
+            'units': None,
+            'decimal_places': None,
+            'num_avg': None,
+            'local_temp_enable': None,
+            'remote_temp_enable': None,
+            'status_led': None,
+            'serial_trigger_enable': None,
+            'raw_reading': None,
+            'trigger_char': None,
+        }
         for line, index_tuple in zip(raw_res, self.prompt_indexes):
             res[index_tuple[0]] = line[index_tuple[1]:-1]
         res['baud'] = int(res['baud'][:-4])
@@ -118,21 +177,37 @@ class OpenScale(serial.Serial):
         return self._trigger_char
 
     @trigger_char.setter
-    def trigger_char(self, char: (str, bytes)):
-        if len(char) > 1:
+    @session
+    def trigger_char(self, char: (str, bytes)) -> None:
+        if len(char) != 1:
             raise ValueError('length of trigger char must be 1')
         self._trigger_char = bytes(char)
-        if not self.is_open:
-            self.open()
         self.write(self.cmds['trigger_char'])
         self.write(self._trigger_char)
 
+    def triggered_read(self):
+        self.write(self.trigger_char)
+
     @property
     def local_temp_enable(self):
-        return self._trigger_char
+        return self._local_temp_enable
 
     @local_temp_enable.setter
+    @session
     def local_temp_enable(self, enable: bool):
+        if not self.is_open:
+            self.open()
+        self._local_temp_enable = enable
+        if enable == self.write(self.cmds['local_temp']):
+            pass
+
+    @property
+    def remote_temp_enable(self):
+        return self._remote_temp_enable
+
+    @remote_temp_enable.setter
+    @session
+    def remote_temp_enable(self, enable: bool):
         if not self.is_open:
             self.open()
         self._local_temp_enable = enable
@@ -144,10 +219,45 @@ class OpenScale(serial.Serial):
         if cmd in {'calibrate', 'increment', 'decrement', 'decimals', 'avg_amt', 'trigger_char'}:
             pass
 
-    def tare(self) -> int:
-        """tares scale and returns tare offset"""
-        pass
+    @session
+    def tare(self) -> Tuple[int, int]:
+        """tares scale and returns tare offset(s)"""
+        # b'\n\rTare point 1: [\d+]\r\n'\
+        # b'\n\rTare point 2: [\d+]\r\n'
+        self.write(self.cmds['tare'])
+        self.read_until(b'Tare point 1: ')  # toss first line
+        tare_val_1: int = int(self.read_until(b'\r\n').strip())
+        self.read_until(b'Tare point 2: ')  # toss first line
+        tare_val_2: int = int(self.read_until(b'\r\n').strip())
+        return tare_val_1, tare_val_2
 
-    def calibrate(self):
+    @session
+    def calibrate(self) -> Dict[str, Union[float, str, int]]:
         """begins interactive calibration process. Returns end result calibration value"""
-        pass
+        # b'Scale calibration\r\n'\
+        # b'Remove all weight from scale\r\n'
+        # b'After readings begin, place known weight on scale\r\n'\
+        # b'Press + or a to increase calibration factor\r\n'\
+        # b'Press - or z to decrease calibration factor\r\n'\
+        # b'Press 0 to zero factor\r\n'\
+        # b'Press x to exit\r\n'
+        # b'Reading: [\d+.\d+] [lbs|kg] ]   Calibration Factor: \d+\r\n'
+        #
+        # behaviour in loop:
+        # -> b'+' | b'-' | b'0' | b'a' | b'z' => b'Reading: [\d+.\d+] [lbs|kg] ]   Calibration Factor: \d+\r\n'
+        # -> b'x' => <save_and_exit>
+        self.write(self.cmds['calibrate'])
+        self.read(240)  # initial spiel is 240 bytes
+        response = self.read_until(b'\r\n').decode('utf-8').split()
+        # index: contents
+        # 0: string float reading in lbs|kg
+        # 1: string for units
+        # 2: 'Calibration'
+        # 3: 'Factor:'
+        # 4: string reading of integer offset used internally
+        res = {
+            'reading': float(response[0]),
+            'units': str(response[1]),
+            'cal_factor': int(response[4]),
+        }
+        return res
