@@ -58,15 +58,14 @@ class OpenScale(serial.Serial):
         ('trigger_char', 24),
     )
 
-    def __init__(self, tare: int = 0, tare_val_1: int = 0, tare_val_2: int = 0, cal_value: int = 0,
-                 timestamp_enable: bool = True, report_rate: int = 200, units: str = 'kg', decimal_places: int = 4,
-                 num_avgs: int = 4, local_temp_enable: bool = False, remote_temp_enable: bool = False,
-                 status_led: bool = True, serial_trigger_enable: bool = True, raw_reading_enable: bool = True,
-                 trigger_char: bytes = b'0', *args, **kwargs):
+    def __init__(self, tare: int = 0, cal_value: int = 0, timestamp_enable: bool = True, report_rate: int = 200,
+                 units: str = 'kg', decimal_places: int = 4, num_avgs: int = 4, local_temp_enable: bool = False,
+                 remote_temp_enable: bool = False, status_led: bool = True, serial_trigger_enable: bool = True,
+                 raw_reading_enable: bool = True, trigger_char: bytes = b'0', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._tare: int = tare
-        self._tare_val_1: int = tare_val_1
-        self._tare_val_2: int = tare_val_2
+        self._tare_val_1: int = 0
+        self._tare_val_2: int = 0
         self._cal_value: int = cal_value
         self._timestamp_enable: bool = timestamp_enable
         self._report_rate: int = report_rate
