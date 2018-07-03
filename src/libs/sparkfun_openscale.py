@@ -20,8 +20,8 @@ from typing import Tuple, Dict, Union
 
 
 class OpenScale(serial.Serial):
-    BAUD_MIN = 1200
-    BAUD_MAX = 1000000
+    BAUDRATES = (1200, 1800, 2400, 4800, 9600, 19200, 38400, 57600,
+                 115200, 230400, 460800, 500000, 576000, 921600, 1000000)
     # prompt for initial opening of config menu:
     #
     # b'1) Tare scale to zero [\d+]\r\n'\
@@ -105,7 +105,6 @@ class OpenScale(serial.Serial):
         """
         decorator to ensure a complete session of editing the OpenScale
         """
-
         @wraps(func)
         def wrapper():
             if not self.is_open:

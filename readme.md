@@ -18,24 +18,25 @@ Currently the stack supports:
 
 - Interfaces:
 	- [x] Linear actuator
-	- [ ] Fluid pump
 	- [x] ADC
     - [x] DAC
     - [x] Temperature
     - [x] Load cell
     - [ ] Strain measurement
+    - [ ] Fluid pump
+
 
 - Sensors:
-    - [x] [ADS1115][ads1115]
-    - [x] [MCP4725][mcp4725]
-    - [x] [MAX31856][max31856]
-    - [ ] [VPG60001][vpg60001] via [Sparkfun Openscale][openscale]
+    - [x] [ADS1115](#ads1115)
+    - [x] [MCP4725](#mcp4725)
+    - [x] [MAX31856](#max31856)
+    - [x] [VPG60001](#vpg60001) via [Sparkfun Openscale][openscale]
     - [ ] Strain measurement
 - Control:
-	- [x] [Actions][actions]
-    - [ ] [Routines][routines]
-    - [x] Configurable PID controller
-    - [ ] Custom operation profiles
+	- [x] [Actions](#actions)
+    - [ ] [Routines](#routines)
+    - [x] [Configurable PID controller](#configurable-pid-controller)
+    - [ ] [Custom operation profiles](#custom-operation-profiles)
 
 Below are larger explanations of each ability:
 
@@ -46,7 +47,7 @@ Models a [PA-14][pa14] linear actuator. With an ADC and DAC as the position and 
 
 #### Fluid pump:
 
-__***Not Implemented:***__
+_**Not Implemented:**_
 
 
 #### ADC:
@@ -63,22 +64,25 @@ __***Not Implemented:***__
 #### ADS1115
 16-bit, 4-channel, I2C,  Delta-Sigma Converter with on board programmable gain amplifier.
 
-[Datasheet][ads1115]
+[ADS1115 Datasheet][ads1115]
 
 #### MCP4725
 12-bit, I2C, DAC with on board EEPROM.
 
-[Datasheet][mcp4725]
+[MCP4725 Datasheet][mcp4725]
 
 #### MAX31856
 Thermocouple to digital converter.
 
-[Datasheet][max31856]
+[MAX31856 Datasheet][max31856]
 
 #### VPG60001
-1000 lb (453.6 kg) S-type load cell. 3mV/V sensitivity. Read with a [HX711][hx711] load cell ASIC
+S-type load cell:
+- 1000 lb (453.6 kg)
+- 3mV/V sensitivity.
+- Read with a [HX711][hx711] load cell ASIC based board providede by sparkfun
 
-[Datasheet][vpg60001]
+[VPG60001 Datasheet][vpg60001]
 
 #### Strain measurement:
 
@@ -88,9 +92,15 @@ Thermocouple to digital converter.
 
 #### Actions:
 
+For more complete documentation, see the action's [readme][actions].
+
 #### Routines:
 
+For more complete documentation, see the routine's [readme][routines].
+
 #### Configurable PID controller:
+
+A traditional implementation of a [PID][pid] controller.
 
 #### Custom operation profiles:
 
@@ -104,6 +114,7 @@ Thermocouple to digital converter.
 [ads1115]: http://www.ti.com/lit/ds/symlink/ads1115.pdf
 [mcp4725]: http://ww1.microchip.com/downloads/en/DeviceDoc/22039d.pdf
 [vpg60001]: http://docs.vpgtransducers.com/?id=2686
-[pa14]: https://www.progressiveautomations.com/media/catalog/pdf/Mini_Linear_Actuator_PA-14.pdf
 [openscale]: https://www.sparkfun.com/products/13261
 [hx711]: http://www.aviaic.com/Download/hx711_brief_en.pdf.pdf
+[pa14]: https://www.progressiveautomations.com/media/catalog/pdf/Mini_Linear_Actuator_PA-14.pdf
+[pid]: https://en.wikipedia.org/wiki/PID_controller
