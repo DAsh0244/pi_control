@@ -56,11 +56,10 @@ class OpenScale(serial.Serial):
     )
 
     def __init__(self, tare: int = 0, tare_val_1: int = 0, tare_val_2: int = 0, cal_value: int = 0,
-                 timestamp_enable: bool = True,
-                 report_rate: int = 200, units: str = 'kg', decimal_places: int = 4, num_avgs: int = 4,
-                 local_temp_enable: bool = False, remote_temp_enable: bool = False, status_led: bool = True,
-                 serial_trigger_enable: bool = True, raw_reading_enable: bool = True, trigger_char: bytes = b'0',
-                 *args, **kwargs):
+                 timestamp_enable: bool = True, report_rate: int = 200, units: str = 'kg', decimal_places: int = 4,
+                 num_avgs: int = 4, local_temp_enable: bool = False, remote_temp_enable: bool = False,
+                 status_led: bool = True, serial_trigger_enable: bool = True, raw_reading_enable: bool = True,
+                 trigger_char: bytes = b'0', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._tare: int = tare
         self._tare_val_1: int = tare_val_1
@@ -172,6 +171,60 @@ class OpenScale(serial.Serial):
             res[key] = False if res[key] == 'Off' else True
         return res
 
+    def triggered_read(self):
+        self.write(self.trigger_char)
+
+    @property
+    def timestamp_enable(self):
+        return self._timestamp_enable
+
+    @timestamp_enable.setter
+    @session
+    def timestamp_enable(self, enable: bool):
+        if self._timestamp_enable != enable:
+            self.write(self.cmds['timestamp'])
+            self._timestamp_enable = enable
+
+    @property
+    def report_rate(self):
+        return self._report_rate
+
+    @report_rate.setter
+    def report_rate(self, value: int):
+        diff = self._report_rate - value
+        if diff == 0:
+            return
+        elif diff > 0:  # decrement `diff` times
+            self.write(self.cmds['report_rate'])
+            for i in range(1, diff):
+                self.write(self.cmds['decrement'])
+            self.reset_input_buffer()
+        elif diff < 0:  # increment `diff` times
+            self.write(self.cmds['report_rate'])
+            for i in range(1, diff):
+                self.write(self.cmds['increment'])
+            self.reset_input_buffer()
+
+    @property
+    def calibrate(self):
+        return self._cal_value
+
+    @calibrate.setter
+    def calibrate(self, value: int):
+        diff = self._cal_value - value
+        if diff == 0:
+            return
+        elif diff > 0:  # decrement `diff` times
+            self.write(self.cmds['calibrate'])
+            for i in range(1, diff):
+                self.write(self.cmds['decrement'])
+            self.reset_input_buffer()
+        elif diff < 0:  # increment `diff` times
+            self.write(self.cmds['calibrate'])
+            for i in range(1, diff):
+                self.write(self.cmds['increment'])
+            self.reset_input_buffer()
+
     @property
     def trigger_char(self):
         return self._trigger_char
@@ -185,9 +238,6 @@ class OpenScale(serial.Serial):
         self.write(self.cmds['trigger_char'])
         self.write(self._trigger_char)
 
-    def triggered_read(self):
-        self.write(self.trigger_char)
-
     @property
     def local_temp_enable(self):
         return self._local_temp_enable
@@ -195,11 +245,9 @@ class OpenScale(serial.Serial):
     @local_temp_enable.setter
     @session
     def local_temp_enable(self, enable: bool):
-        if not self.is_open:
-            self.open()
-        self._local_temp_enable = enable
-        if enable == self.write(self.cmds['local_temp']):
-            pass
+        if self._local_temp_enable != enable:
+            self.write(self.cmds['local_temp'])
+            self._remote_temp_enable = enable
 
     @property
     def remote_temp_enable(self):
@@ -208,16 +256,75 @@ class OpenScale(serial.Serial):
     @remote_temp_enable.setter
     @session
     def remote_temp_enable(self, enable: bool):
-        if not self.is_open:
-            self.open()
-        self._local_temp_enable = enable
-        if enable == self.write(self.cmds['local_temp']):
-            pass
+        if self._remote_temp_enable != enable:
+            self.write(self.cmds['remote_temp'])
+            self._remote_temp_enable = enable
 
-    def send_cmd(self, cmd: str, *args):
-        self.write(self.cmds[cmd])
-        if cmd in {'calibrate', 'increment', 'decrement', 'decimals', 'avg_amt', 'trigger_char'}:
-            pass
+    @property
+    def units(self):
+        return self._units
+
+    @units.setter
+    @session
+    def units(self, unit: str):
+        if self._units != unit:
+            self.write(self.cmds['units'])
+            self._units = unit
+
+    @property
+    def decimals(self):
+        return self._decimal_places
+
+    @decimals.setter
+    def decimals(self, places: int):
+        if self._decimal_places != places:
+            self.write(self.cmds['decimals'])
+            self._decimal_places = places
+
+    @property
+    def num_avgs(self):
+        return self._num_avgs
+
+    @num_avgs.setter
+    @session
+    def num_avgs(self, n_avgs: int):
+        if self._num_avgs != n_avgs:
+            self.write(self.cmds['avg_amt'])
+            self.write(n_avgs)
+            self._num_avgs = n_avgs
+
+    @property
+    def status_led(self):
+        return self._status_led
+
+    @status_led.setter
+    @session
+    def status_led(self, enable: bool):
+        if self._status_led != enable:
+            self.write(self.cmds['status_led'])
+            self._status_led = enable
+
+    @property
+    def raw_reading_enable(self):
+        return self._raw_reading_enable
+
+    @raw_reading_enable.setter
+    @session
+    def raw_reading_enable(self, enable: bool):
+        if self._raw_reading_enable != enable:
+            self.write(self.cmds['raw_reading'])
+            self._raw_reading_enable = enable
+
+    @property
+    def serial_trigger_enable(self):
+        return self._serial_trigger_enable
+
+    @serial_trigger_enable.setter
+    @session
+    def serial_trigger_enable(self, enable: bool):
+        if self._serial_trigger_enable != enable:
+            self.write(self.cmds['serial_trigger'])
+            self._serial_trigger_enable = enable
 
     @session
     def tare(self) -> Tuple[int, int]:
@@ -232,7 +339,7 @@ class OpenScale(serial.Serial):
         return tare_val_1, tare_val_2
 
     @session
-    def calibrate(self) -> Dict[str, Union[float, str, int]]:
+    def read_cal_info(self) -> Dict[str, Union[float, str, int]]:
         """begins interactive calibration process. Returns end result calibration value"""
         # b'Scale calibration\r\n'\
         # b'Remove all weight from scale\r\n'
@@ -261,3 +368,40 @@ class OpenScale(serial.Serial):
             'cal_factor': int(response[4]),
         }
         return res
+
+    def get_reading(self) -> Tuple:
+        # order is (if enabled) : comma separation, no whitespace:
+        # timestamp -- toggleable -- int
+        # calibrated_reading -- always printed -- float
+        # units -- always printed -- str
+        # raw_reading -- toggleable -- int
+        # local_temp -- toggleable -- float
+        # remote_temp -- toggleable -- float
+        ret_map = {
+            # order: ret     (timestamp,  cal,     unit, raw, local, remote)
+            0b01000: lambda x: (None, float(x[0]), x[1], None, None, None),
+            0b01001: lambda x: (None, float(x[0]), x[1], None, None, float(x[2])),
+            0b01010: lambda x: (None, float(x[0]), x[1], None, float(x[2]), None),
+            0b01011: lambda x: (None, float(x[0]), x[1], None, float(x[2]), float(x[3])),
+            0b01100: lambda x: (None, float(x[0]), x[1], int(x[2]), None, None),
+            0b01101: lambda x: (None, float(x[0]), x[1], int(x[2]), None, float(x[3])),
+            0b01110: lambda x: (None, float(x[0]), x[1], int(x[2]), float(x[3]), None),
+            0b01111: lambda x: (None, float(x[0]), x[1], int(x[2]), float(x[3]), float(x[4])),
+            0b11000: lambda x: (int(x[0]), float(x[1]), x[2], None, None, None),
+            0b11001: lambda x: (int(x[0]), float(x[1]), x[2], None, None, float(x[3])),
+            0b11010: lambda x: (int(x[0]), float(x[1]), x[2], None, float(x[3]), None),
+            0b11011: lambda x: (int(x[0]), float(x[1]), x[2], None, float(x[3]), float(x[4])),
+            0b11100: lambda x: (int(x[0]), float(x[1]), x[2], int(x[3]), None, None),
+            0b11101: lambda x: (int(x[0]), float(x[1]), x[2], int(x[3]), None, float(x[4])),
+            0b11110: lambda x: (int(x[0]), float(x[1]), x[2], int(x[3]), float(x[4]), None),
+            0b11111: lambda x: (int(x[0]), float(x[1]), x[2], int(x[3]), float(x[4]), float(x[5])),
+        }
+
+        key = (self._timestamp_enable << 4) | \
+              0b01000 | \
+              (self._raw_reading_enable << 2) | \
+              (self._local_temp_enable << 1) | \
+              self._remote_temp_enable
+        self.triggered_read()
+        res = self.read_until(b'\r\n').decode('utf-8').split(',')
+        return ret_map[key](res)
