@@ -22,14 +22,14 @@ Currently the stack supports:
 	- [x] ADC
     - [x] DAC
     - [x] Temperature
-    - [ ] Load cell
+    - [x] Load cell
     - [ ] Strain measurement
 
 - Sensors:
     - [x] [ADS1115][ads1115]
     - [x] [MCP4725][mcp4725]
     - [x] [MAX31856][max31856]
-    - [ ] [VPG60001][vpg60001]
+    - [ ] [VPG60001][vpg60001] via [Sparkfun Openscale][openscale]
     - [ ] Strain measurement
 - Control:
 	- [x] [Actions][actions]
@@ -76,7 +76,7 @@ Thermocouple to digital converter.
 [Datasheet][max31856]
 
 #### VPG60001
-1000 lb (453.6 kg) S-type load cell. 3mV/V sensitivity.
+1000 lb (453.6 kg) S-type load cell. 3mV/V sensitivity. Read with a [HX711][hx711] load cell ASIC
 
 [Datasheet][vpg60001]
 
@@ -105,3 +105,5 @@ Thermocouple to digital converter.
 [mcp4725]: http://ww1.microchip.com/downloads/en/DeviceDoc/22039d.pdf
 [vpg60001]: http://docs.vpgtransducers.com/?id=2686
 [pa14]: https://www.progressiveautomations.com/media/catalog/pdf/Mini_Linear_Actuator_PA-14.pdf
+[openscale]: https://www.sparkfun.com/products/13261
+[hx711]: http://www.aviaic.com/Download/hx711_brief_en.pdf.pdf
