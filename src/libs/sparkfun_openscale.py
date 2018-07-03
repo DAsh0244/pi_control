@@ -16,6 +16,9 @@ from functools import wraps
 from typing import Tuple, Dict, Union
 
 
+# todo: get some form of config dumping and loading implemented
+
+
 class OpenScale(serial.Serial):
     BAUD_MIN = 1200
     BAUD_MAX = 1000000
