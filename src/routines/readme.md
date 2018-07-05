@@ -3,10 +3,10 @@ Put routines you will call via the yaml config files here.
 
 Ensure that you add the routines to the `__init__.py` file.
 
-## what are routines?
+## What are routines?
 Routines are a sequence of [actions](../actions) combined that accomplish a task.
 Many times an routine will want to be executed multiple times with different criteria.
-These criteria are referred to as parameters, and are defined in the routine's [definition](#implementation).
+These criteria are referred to as parameters, and are defined in the routine's [definition](#implementation-details).
 
 ## How are they used?
 Routines are used in the `yaml` based configuration files that are used to define
@@ -27,6 +27,8 @@ ROUTINES: &ROUTINES
       - !Action
           name: CLEANUP
 ```
+
+## Implementation details:
 
 Routines are implemented as python function calls. The convention is
 - one routine in a module/file
