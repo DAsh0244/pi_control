@@ -18,10 +18,8 @@ from libs.sparkfun_openscale import OpenScale
 
 class TestOpenScale(TestCase):
 
-    def test_load_config_from_device(self):
-        self.fail()
-
-    def test_parse_menu_response(self):
+    @staticmethod
+    def gen_fake_menu(monkey_patch: bool = True):
         baudrate = choice(OpenScale.BAUDRATES)
         tare = randrange(-2 ** 31, 2 ** 31 - 1)
         cal = randrange(-2 ** 31, 2 ** 31 - 1)
@@ -62,18 +60,44 @@ class TestOpenScale(TestCase):
         raw = False if raw == 'Off' else True
         trigger_char = chr(trigger_char).encode('utf-8')
 
-        # todo: figure out better method than a monkey patch
-        def open(cls):
-            cls.is_open = True
+        if monkey_patch:
+            def open(cls):
+                cls.is_open = True
 
-        OpenScale._reconfigure_port = lambda arg: True
-        OpenScale.read_until = lambda self, terminator: dummy_res
-        OpenScale.open = open
-        OpenScale.reset_input_buffer = lambda *args: True
-        OpenScale.write = lambda *args: True
-        OpenScale.flush = lambda *args: True
-        scale = OpenScale()
-        scale.is_open = True
+            OpenScale._reconfigure_port = lambda arg: True
+            OpenScale.read_until = lambda self, terminator: dummy_res
+            OpenScale.open = open
+            OpenScale.reset_input_buffer = lambda *args: True
+            OpenScale.write = lambda *args: True
+            OpenScale.flush = lambda *args: True
+            scale = OpenScale()
+            scale.is_open = True
+        else:
+            scale = OpenScale()
+        return avgs, baudrate, cal, decimal_places, led, local, raw, remote, report_rate, scale, tare, timestamp, trigger, trigger_char, units
+
+    def test_load_config_from_device(self):
+        avgs, baudrate, cal, decimal_places, led, local, raw, remote, report_rate, \
+        scale, tare, timestamp, trigger, trigger_char, units = self.gen_fake_menu()
+        scale.load_config_from_device()
+        self.assertEqual(scale.baudrate, baudrate, 'Baudrate parsing failed')
+        self.assertEqual(scale.tare, tare, 'Tare parsing failed')
+        self.assertEqual(scale.calibrate, cal, 'Calibrate parsing failed')
+        self.assertEqual(scale.report_rate, report_rate, 'Report rate parsing failed')
+        self.assertEqual(scale.decimals, decimal_places, 'Decimal places parsing failed')
+        self.assertEqual(scale.num_avgs, avgs, 'Average amount parsing failed')
+        self.assertEqual(scale.timestamp_enable, timestamp, 'Timestamp parsing failed')
+        self.assertEqual(scale.units, units, 'Units parsing failed')
+        self.assertEqual(scale.local_temp_enable, local, 'local temperature enable parsing failed')
+        self.assertEqual(scale.remote_temp_enable, remote, 'remote temperature enable parsing failed')
+        self.assertEqual(scale.status_led, led, 'LED status parsing failed')
+        self.assertEqual(scale.serial_trigger_enable, trigger, 'trigger enable status parsing failed')
+        self.assertEqual(scale.raw_reading_enable, raw, 'raw read enable status parsing failed')
+        self.assertEqual(scale.trigger_char, trigger_char, 'trigger char parsing failed')
+
+    def test_parse_menu_response(self):
+        avgs, baudrate, cal, decimal_places, led, local, raw, remote, report_rate, \
+        scale, tare, timestamp, trigger, trigger_char, units = self.gen_fake_menu()
         res = scale.parse_menu_response()
         self.assertEqual(res['baud'], baudrate, 'Baudrate parsing failed')
         self.assertEqual(res['tare'], tare, 'Tare parsing failed')
@@ -130,6 +154,9 @@ class TestOpenScale(TestCase):
         self.fail()
 
     def test_tare(self):
+        self.fail()
+
+    def test_tare_device(self):
         self.fail()
 
     def test_read_cal_info(self):

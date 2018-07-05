@@ -62,7 +62,7 @@ class OpenScale(serial.Serial):
                  remote_temp_enable: bool = False, status_led: bool = True, serial_trigger_enable: bool = True,
                  raw_reading_enable: bool = True, trigger_char: bytes = b'0', *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._tare: int = tare
+        self._tare_val: int = tare
         self._tare_val_1: int = 0
         self._tare_val_2: int = 0
         self._cal_value: int = cal_value
@@ -112,7 +112,7 @@ class OpenScale(serial.Serial):
         res = self.parse_menu_response()
         # noinspection SpellCheckingInspection
         self.baudrate = res['baud']
-        self._tare = res['tare']
+        self._tare_val = res['tare']
         self._timestamp_enable = res['timestamp']
         self._local_temp_enable = res['local_temp_enable']
         self._remote_temp_enable = res['remote_temp_enable']
@@ -424,7 +424,11 @@ class OpenScale(serial.Serial):
             self._serial_trigger_enable = enable
         self.write(self.cmds['close_menu'])
 
-    def tare(self) -> Tuple[int, int]:
+    @property
+    def tare(self):
+        return self._tare_val
+
+    def tare_device(self) -> Tuple[int, int]:
         """tares scale and returns tare offset(s)"""
         if not self.is_open:
             self.open()
