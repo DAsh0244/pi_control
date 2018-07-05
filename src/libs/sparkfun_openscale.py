@@ -12,7 +12,6 @@ Description: library for interfacing the Sparkfun OpenScale.
 """
 
 import serial
-from functools import wraps
 from typing import Tuple, Dict, Union
 
 
@@ -43,7 +42,7 @@ class OpenScale(serial.Serial):
 
     prompt_indexes = (
         ('tare', 23),
-        ('calibrate', 19),
+        ('calibrate', 20),
         ('timestamp', 14),
         ('report_rate', 20),
         ('baud', 18),
@@ -55,7 +54,7 @@ class OpenScale(serial.Serial):
         ('status_led', 15),
         ('serial_trigger_enable', 19),
         ('raw_reading', 16),
-        ('trigger_char', 24),
+        ('trigger_char', 23),
     )
 
     def __init__(self, tare: int = 0, cal_value: int = 0, timestamp_enable: bool = True, report_rate: int = 200,
@@ -101,30 +100,15 @@ class OpenScale(serial.Serial):
         }
         self.load_config_from_device()
 
-    def session(self, func):
-        """
-        decorator to ensure a complete session of editing the OpenScale
-        """
-        @wraps(func)
-        def wrapper():
-            if not self.is_open:
-                self.open()
-            # keep separate to help timings
-            self.reset_output_buffer()
-            self.write(self.cmds['open_menu'])
-            self.flush()
-            self.reset_input_buffer()
-            try:
-                return func()
-            except Exception as e:
-                print(e)
-            finally:
-                self.write(self.cmds['close_menu'])
-
-        return wrapper
-
-    @session
     def load_config_from_device(self):
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         res = self.parse_menu_response()
         # noinspection SpellCheckingInspection
         self.baudrate = res['baud']
@@ -142,8 +126,17 @@ class OpenScale(serial.Serial):
         self._raw_reading_enable = res['raw_reading']
         self._trigger_char = res['trigger_char']
 
-    @session
+        self.write(self.cmds['close_menu'])
+
     def parse_menu_response(self):
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         raw_res = self.read_until(b'>').decode("utf-8").split('\r\n')
         res = {
             'tare': None,
@@ -163,13 +156,16 @@ class OpenScale(serial.Serial):
         }
         for line, index_tuple in zip(raw_res, self.prompt_indexes):
             res[index_tuple[0]] = line[index_tuple[1]:-1]
+        res['trigger_char'] = chr(int(res['trigger_char'])).encode('utf-8')
         res['baud'] = int(res['baud'][:-4])
-        res['trigger_char'] = chr(int(res['trigger_char']))
+        # res['trigger_char'] = res['trigger_char']
         for key in ('tare', 'calibrate', 'report_rate', 'decimal_places', 'num_avg'):
             res[key] = int(res[key])
         for key in ('timestamp', 'local_temp_enable', 'remote_temp_enable',
                     'status_led', 'serial_trigger_enable', 'raw_reading'):
             res[key] = False if res[key] == 'Off' else True
+
+        self.write(self.cmds['close_menu'])
         return res
 
     def triggered_read(self):
@@ -180,11 +176,19 @@ class OpenScale(serial.Serial):
         return self._timestamp_enable
 
     @timestamp_enable.setter
-    @session
     def timestamp_enable(self, enable: bool):
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         if self._timestamp_enable != enable:
             self.write(self.cmds['timestamp'])
             self._timestamp_enable = enable
+        self.write(self.cmds['close_menu'])
 
     @property
     def report_rate(self):
@@ -192,6 +196,14 @@ class OpenScale(serial.Serial):
 
     @report_rate.setter
     def report_rate(self, value: int):
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         diff = self._report_rate - value
         if diff == 0:
             return
@@ -200,11 +212,14 @@ class OpenScale(serial.Serial):
             for i in range(1, diff):
                 self.write(self.cmds['decrement'])
             self.reset_input_buffer()
+            self._report_rate = value
         elif diff < 0:  # increment `diff` times
             self.write(self.cmds['report_rate'])
             for i in range(1, diff):
                 self.write(self.cmds['increment'])
             self.reset_input_buffer()
+            self._report_rate = value
+        self.write(self.cmds['close_menu'])
 
     @property
     def calibrate(self):
@@ -212,6 +227,14 @@ class OpenScale(serial.Serial):
 
     @calibrate.setter
     def calibrate(self, value: int):
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         diff = self._cal_value - value
         if diff == 0:
             return
@@ -225,14 +248,22 @@ class OpenScale(serial.Serial):
             for i in range(1, diff):
                 self.write(self.cmds['increment'])
             self.reset_input_buffer()
+        self.write(self.cmds['close_menu'])
 
     @property
     def trigger_char(self):
         return self._trigger_char
 
     @trigger_char.setter
-    @session
     def trigger_char(self, char: (str, bytes)) -> None:
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         if len(char) != 1:
             raise ValueError('length of trigger char must be 1')
         self._trigger_char = bytes(char)
@@ -244,33 +275,59 @@ class OpenScale(serial.Serial):
         return self._local_temp_enable
 
     @local_temp_enable.setter
-    @session
     def local_temp_enable(self, enable: bool):
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         if self._local_temp_enable != enable:
             self.write(self.cmds['local_temp'])
             self._remote_temp_enable = enable
+
+        self.write(self.cmds['close_menu'])
 
     @property
     def remote_temp_enable(self):
         return self._remote_temp_enable
 
     @remote_temp_enable.setter
-    @session
     def remote_temp_enable(self, enable: bool):
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         if self._remote_temp_enable != enable:
             self.write(self.cmds['remote_temp'])
             self._remote_temp_enable = enable
+
+        self.write(self.cmds['close_menu'])
 
     @property
     def units(self):
         return self._units
 
     @units.setter
-    @session
     def units(self, unit: str):
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         if self._units != unit:
             self.write(self.cmds['units'])
             self._units = unit
+        self.write(self.cmds['close_menu'])
 
     @property
     def decimals(self):
@@ -278,17 +335,33 @@ class OpenScale(serial.Serial):
 
     @decimals.setter
     def decimals(self, places: int):
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         if self._decimal_places != places:
             self.write(self.cmds['decimals'])
             self._decimal_places = places
+        self.write(self.cmds['close_menu'])
 
     @property
     def num_avgs(self):
         return self._num_avgs
 
     @num_avgs.setter
-    @session
     def num_avgs(self, n_avgs: int):
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         if self._num_avgs != n_avgs:
             self.write(self.cmds['avg_amt'])
             self.write(n_avgs)
@@ -299,37 +372,68 @@ class OpenScale(serial.Serial):
         return self._status_led
 
     @status_led.setter
-    @session
     def status_led(self, enable: bool):
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         if self._status_led != enable:
             self.write(self.cmds['status_led'])
             self._status_led = enable
+        self.write(self.cmds['close_menu'])
 
     @property
     def raw_reading_enable(self):
         return self._raw_reading_enable
 
     @raw_reading_enable.setter
-    @session
     def raw_reading_enable(self, enable: bool):
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         if self._raw_reading_enable != enable:
             self.write(self.cmds['raw_reading'])
             self._raw_reading_enable = enable
+        self.write(self.cmds['close_menu'])
 
     @property
     def serial_trigger_enable(self):
         return self._serial_trigger_enable
 
     @serial_trigger_enable.setter
-    @session
     def serial_trigger_enable(self, enable: bool):
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         if self._serial_trigger_enable != enable:
             self.write(self.cmds['serial_trigger'])
             self._serial_trigger_enable = enable
+        self.write(self.cmds['close_menu'])
 
-    @session
     def tare(self) -> Tuple[int, int]:
         """tares scale and returns tare offset(s)"""
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         # b'\n\rTare point 1: [\d+]\r\n'\
         # b'\n\rTare point 2: [\d+]\r\n'
         self.write(self.cmds['tare'])
@@ -337,11 +441,19 @@ class OpenScale(serial.Serial):
         tare_val_1: int = int(self.read_until(b'\r\n').strip())
         self.read_until(b'Tare point 2: ')  # toss first line
         tare_val_2: int = int(self.read_until(b'\r\n').strip())
+        self.write(self.cmds['close_menu'])
         return tare_val_1, tare_val_2
 
-    @session
     def read_cal_info(self) -> Dict[str, Union[float, str, int]]:
         """begins interactive calibration process. Returns end result calibration value"""
+        if not self.is_open:
+            self.open()
+            # keep separate to help timings
+        self.reset_output_buffer()
+        self.write(self.cmds['open_menu'])
+        self.flush()
+        self.reset_input_buffer()
+
         # b'Scale calibration\r\n'\
         # b'Remove all weight from scale\r\n'
         # b'After readings begin, place known weight on scale\r\n'\
@@ -368,6 +480,7 @@ class OpenScale(serial.Serial):
             'units': str(response[1]),
             'cal_factor': int(response[4]),
         }
+        self.write(self.cmds['close_menu'])
         return res
 
     def get_reading(self) -> Tuple:
