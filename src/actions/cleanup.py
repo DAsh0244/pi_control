@@ -8,13 +8,17 @@ Author: Danyal Ahsanullah
 Date: 6/26/2018
 Copyright (c):  2018 Danyal Ahsanullah
 License: N/A
-Description: 
+Description: action file that calls cleanup functions to cleanup hardware, close any open file descriptors.
+Begins the shutdown state of the device.
 """
 
 from libs.hal import hal_cleanup
 
 
+# noinspection PyUnusedLocal
 def cleanup(interface=None, params=None, nxt=None):
-    print('cleanup')
+    print('cleaning')
     hal_cleanup()
+    # stop conversions and logging
+    # close any open file descriptors
     return nxt

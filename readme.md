@@ -4,23 +4,22 @@ This is a software stack intended for easy and highly configurable setup of proc
 ## Philosophy:
 The philosophy of the stack is to provide a combination of a simplified interface abstraction and coordination via a mix between [yaml][yaml] configuration files and simplified and convenient interfaces to hardware to describe configurations and procedures.
 
-##### Users:
+#### Users:
 As a user, there are two main areas you will be using to describe procedures:
 - [Actions](#actions) - define new actions for setup (`python`)
 - [Routines](#routines) - define new routines for setup (`yaml`)
 
 For a more description of what each area is for see the appropriate subsection here for a link to the area's documentation.
 
-##### Devs:
+#### Devs:
 As a developer, knowing the entire code base is not difficult but in addition to the stack, reading up on the protocols used to communicate between peripherals and the master controller will save you headache later. Recommended topics to cover include:
 - I2C communications
 - UART communications
 - Datasheets for components
 - Thermocouples
 - Strain gauges
--
 
-Most of the interfaces are wrappers around pre-existing libraries that are intended to provide usable default behavior while maintaining
+Most of the interfaces are wrappers around pre-existing libraries that are intended to provide usable default behavior while maintaining an extensible api that allows for replacing one ADC interface with another being a relatively painless process.
 
 
 ## Capabilities:
@@ -57,12 +56,17 @@ Models a [PA-14][pa14] linear actuator. With an ADC and DAC as the position and 
 
 #### Fluid pump:
 
-_**Not Implemented:**_
+_*Not Implemented*_
 
 
 #### ADC:
 
-Used to measure position of the linear actuator.
+There are multiple ADCs in the system that quantize realworld signals into manipulatable digital formats. In the entire system, the following ADCs exist and are used:
+- [ADS1115][ads1115] Used to measure position of the linear actuator. 16-bits of resolution.
+- [HX711][hx711] Part of the OpenScale sensor module. Contains a 24-bit ADC operating at upto 80 sps.
+- [MAX31856][max31856] Part of MAX universal thermocouple chip. Contains an on-board 19-bit ADC operating in a multiplexed method.
+
+Because all of the converters are part of a module save for the ADS1115, the reference to `ADC` or `adc` can be safely implied to be referring to it and not the other modules.
 
 #### DAC:
 
@@ -103,9 +107,12 @@ S-type load cell:
 
 #### Strain measurement:
 
+_*Not Implemented*_
 
 ### Control:
 ---
+
+Control of the entire system is done via a `Procedure`. A `Procedure` is a combination of `Routines` and `Actions` (see below for more information).
 
 #### Actions:
 
@@ -117,7 +124,7 @@ For more complete documentation, see the routine's [readme][routines].
 
 #### Configurable PID controller:
 
-A traditional implementation of a [PID][pid] controller.
+A traditional implementation of a [PID][pid] controller. Able to be put in-line as a controller for the Actuator. It accepts a reference input, an output, and an input.
 
 #### Custom operation profiles:
 These are accomplished as a combination of actions and routines. For more information see the related sections.
