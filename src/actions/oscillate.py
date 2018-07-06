@@ -32,8 +32,8 @@ def oscillate(interface=actuator, params=None, nxt=None):
     condition = 'success'
     low_pos = params['low_pos']
     high_pos = params['high_pos']
-    timeout = params.get('timeout', None)
-    repetitions = params.get('repetitions', None)
+    timeout = params.get('timeout', float('inf'))
+    repetitions = params.get('repetitions', float('inf'))
     controller = params.get('controller', None)
     repeats = 0
     start = perf_counter()
