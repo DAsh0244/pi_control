@@ -312,3 +312,5 @@ pyvenv.cfg
 
 data_analytics/
 .idea/snapshots/
+/docs/
+

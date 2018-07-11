@@ -75,7 +75,7 @@ class _ADS1115(ADS1115):
     bits = 16
     levels = 1 << bits
     max_level = (levels >> 1) - 1
-    min_level = levels >> 1
+    min_level = -1 * (levels >> 1)
     pga_map = {2 / 3: 6.144,  # map of gain values vs max peak readable voltage
                1: 4.096,
                2: 2.048,
@@ -110,7 +110,7 @@ class _ADS1115(ADS1115):
         self.default_channel = default_channel
         self.alert_pin = alert_pin
         self.step_size = 2 * self.max_voltage / self.levels
-        self.history = _deque(maxlen=history_len)
+        self.history: _deque = _deque(maxlen=history_len)
         super().__init__()
 
     def get_last_result(self):
