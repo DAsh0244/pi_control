@@ -17,9 +17,35 @@ from libs.sparkfun_openscale import OpenScale
 
 
 class TestOpenScale(TestCase):
+    dummy_res = '1) Tare scale to zero [{}]\r\n' \
+                '2) Calibrate scale [{}]\r\n' \
+                '3) Timestamp [{}]\r\n' \
+                '4) Set report rate [{}]\r\n' \
+                '5) Set baud rate [{} bps]\r\n' \
+                '6) Change units of measure [{}]\r\n' \
+                '7) Decimals [{}]\r\n' \
+                '8) Average amount [{}]\r\n' \
+                '9) Local temp [{}]\r\n' \
+                'r) Remote temp [{}]\r\n' \
+                's) Status LED [{}]\r\n' \
+                't) Serial trigger [{}]\r\n' \
+                'q) Raw reading [{}]\r\n' \
+                'c) Trigger character: [{}]\r\n' \
+                'x) Exit\r\n' \
+                '>'
 
-    @staticmethod
-    def gen_fake_menu(monkey_patch: bool = True):
+    def monkey_patch_serial(self):
+        def open(cls):
+            cls.is_open = True
+
+        OpenScale._reconfigure_port = lambda arg: True
+        OpenScale.read_until = lambda self, terminator: self.dummy_res
+        OpenScale.open = open
+        OpenScale.reset_input_buffer = lambda *args: True
+        OpenScale.write = lambda *args: True
+        OpenScale.flush = lambda *args: True
+
+    def gen_fake_menu(self, monkey_patch: bool = True):
         baudrate = choice(OpenScale.BAUDRATES)
         tare = randrange(-2 ** 31, 2 ** 31 - 1)
         cal = randrange(-2 ** 31, 2 ** 31 - 1)
@@ -34,24 +60,9 @@ class TestOpenScale(TestCase):
         trigger = choice(('On', 'Off'))
         raw = choice(('On', 'Off'))
         trigger_char = randrange(33, 126)
-        dummy_res = '1) Tare scale to zero [{}]\r\n' \
-                    '2) Calibrate scale [{}]\r\n' \
-                    '3) Timestamp [{}]\r\n' \
-                    '4) Set report rate [{}]\r\n' \
-                    '5) Set baud rate [{} bps]\r\n' \
-                    '6) Change units of measure [{}]\r\n' \
-                    '7) Decimals [{}]\r\n' \
-                    '8) Average amount [{}]\r\n' \
-                    '9) Local temp [{}]\r\n' \
-                    'r) Remote temp [{}]\r\n' \
-                    's) Status LED [{}]\r\n' \
-                    't) Serial trigger [{}]\r\n' \
-                    'q) Raw reading [{}]\r\n' \
-                    'c) Trigger character: [{}]\r\n' \
-                    'x) Exit\r\n' \
-                    '>'.format(tare, cal, timestamp, report_rate, baudrate, units,
-                               decimal_places, avgs, local, remote, led, trigger,
-                               raw, trigger_char).encode('utf-8')
+        self.dummy_res.format(tare, cal, timestamp, report_rate, baudrate, units,
+                              decimal_places, avgs, local, remote, led, trigger,
+                              raw, trigger_char).encode('utf-8')
         timestamp = False if timestamp == 'Off' else True
         local = False if local == 'Off' else True
         remote = False if remote == 'Off' else True
@@ -61,15 +72,7 @@ class TestOpenScale(TestCase):
         trigger_char = chr(trigger_char).encode('utf-8')
 
         if monkey_patch:
-            def open(cls):
-                cls.is_open = True
-
-            OpenScale._reconfigure_port = lambda arg: True
-            OpenScale.read_until = lambda self, terminator: dummy_res
-            OpenScale.open = open
-            OpenScale.reset_input_buffer = lambda *args: True
-            OpenScale.write = lambda *args: True
-            OpenScale.flush = lambda *args: True
+            self.monkey_patch_serial()
             scale = OpenScale()
             scale.is_open = True
         else:
