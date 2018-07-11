@@ -180,14 +180,14 @@ class _MCP4725(MCP4725):
     """
     bits = 12
     levels = 1 << bits
-    vcc = GLOBAL_VCC
-    step_size = vcc / levels
-    default_val = levels >> 2  # default is 1/4 speed
     stop = 0
 
-    def __init__(self, *args, history_len=20, **kwargs):
+    def __init__(self, vcc=GLOBAL_VCC, *args, history_len=20, **kwargs):
         self.value_history = _deque(maxlen=history_len)  # holds previous values
         self.value = 0  # holds current value
+        self.vcc = vcc
+        self.step_size = vcc / self.levels
+        self.default_val = self.levels >> 2  # default is 1/4 speed
         super().__init__(*args, **kwargs)
 
     def set_level(self, level):
