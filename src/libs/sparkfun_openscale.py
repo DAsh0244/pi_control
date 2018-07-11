@@ -158,7 +158,6 @@ class OpenScale(serial.Serial):
             res[index_tuple[0]] = line[index_tuple[1]:-1]
         res['trigger_char'] = chr(int(res['trigger_char'])).encode('utf-8')
         res['baud'] = int(res['baud'][:-4])
-        # res['trigger_char'] = res['trigger_char']
         for key in ('tare', 'calibrate', 'report_rate', 'decimal_places', 'num_avg'):
             res[key] = int(res[key])
         for key in ('timestamp', 'local_temp_enable', 'remote_temp_enable',
@@ -242,13 +241,16 @@ class OpenScale(serial.Serial):
             self.write(self.cmds['calibrate'])
             for i in range(1, diff):
                 self.write(self.cmds['decrement'])
+                self.flush()
             self.reset_input_buffer()
         elif diff < 0:  # increment `diff` times
             self.write(self.cmds['calibrate'])
-            for i in range(1, diff):
+            for i in range(1, -diff):
                 self.write(self.cmds['increment'])
+                self.flush()
             self.reset_input_buffer()
         self.write(self.cmds['close_menu'])
+        self._cal_value = value
 
     @property
     def trigger_char(self):
@@ -266,7 +268,7 @@ class OpenScale(serial.Serial):
 
         if len(char) != 1:
             raise ValueError('length of trigger char must be 1')
-        self._trigger_char = bytes(char)
+        self._trigger_char = bytes(char, 'utf-8')
         self.write(self.cmds['trigger_char'])
         self.write(self._trigger_char)
 
@@ -286,7 +288,7 @@ class OpenScale(serial.Serial):
 
         if self._local_temp_enable != enable:
             self.write(self.cmds['local_temp'])
-            self._remote_temp_enable = enable
+            self._local_temp_enable = enable
 
         self.write(self.cmds['close_menu'])
 
@@ -441,15 +443,15 @@ class OpenScale(serial.Serial):
         # b'\n\rTare point 1: [\d+]\r\n'\
         # b'\n\rTare point 2: [\d+]\r\n'
         self.write(self.cmds['tare'])
-        self.read_until(b'Tare point 1: ')  # toss first line
+        self.read_until(b'Tare point 1: ')
         tare_val_1: int = int(self.read_until(b'\r\n').strip())
-        self.read_until(b'Tare point 2: ')  # toss first line
+        self.read_until(b'Tare point 2: ')
         tare_val_2: int = int(self.read_until(b'\r\n').strip())
         self.write(self.cmds['close_menu'])
         return tare_val_1, tare_val_2
 
     def read_cal_info(self) -> Dict[str, Union[float, str, int]]:
-        """begins interactive calibration process. Returns end result calibration value"""
+        """Returns end result calibration value"""
         if not self.is_open:
             self.open()
             # keep separate to help timings
@@ -465,24 +467,25 @@ class OpenScale(serial.Serial):
         # b'Press - or z to decrease calibration factor\r\n'\
         # b'Press 0 to zero factor\r\n'\
         # b'Press x to exit\r\n'
-        # b'Reading: [\d+.\d+] [lbs|kg] ]   Calibration Factor: \d+\r\n'
+        # b'Reading: [\d+.\d+ [lbs|kg]]   Calibration Factor: \d+\r\n'
         #
         # behaviour in loop:
-        # -> b'+' | b'-' | b'0' | b'a' | b'z' => b'Reading: [\d+.\d+] [lbs|kg] ]   Calibration Factor: \d+\r\n'
+        # -> b'+' | b'-' | b'0' | b'a' | b'z' => b'Reading: [\d+.\d+ [lbs|kg]]   Calibration Factor: \d+\r\n'
         # -> b'x' => <save_and_exit>
         self.write(self.cmds['calibrate'])
         self.read(240)  # initial spiel is 240 bytes
         response = self.read_until(b'\r\n').decode('utf-8').split()
         # index: contents
-        # 0: string float reading in lbs|kg
-        # 1: string for units
-        # 2: 'Calibration'
-        # 3: 'Factor:'
-        # 4: string reading of integer offset used internally
+        # 0: b'Reading:'
+        # 1: [ + string float reading in lbs|kg
+        # 2: string for units + ]
+        # 3: 'Calibration'
+        # 4: 'Factor:'
+        # 5: string reading of integer offset used internally
         res = {
-            'reading': float(response[0]),
-            'units': str(response[1]),
-            'cal_factor': int(response[4]),
+            'reading': float(response[1][1:]),
+            'units': str(response[2][:-1]),
+            'cal_factor': int(response[5]),
         }
         self.write(self.cmds['close_menu'])
         return res
@@ -496,7 +499,7 @@ class OpenScale(serial.Serial):
         # local_temp -- toggleable -- float
         # remote_temp -- toggleable -- float
         ret_map = {
-            # order: ret     (timestamp,  cal,     unit, raw, local, remote)
+            # order: ret     (timestamp, cal_read, unit, raw, local, remote)
             0b01000: lambda x: (None, float(x[0]), x[1], None, None, None),
             0b01001: lambda x: (None, float(x[0]), x[1], None, None, float(x[2])),
             0b01010: lambda x: (None, float(x[0]), x[1], None, float(x[2]), None),
@@ -522,4 +525,5 @@ class OpenScale(serial.Serial):
               self._remote_temp_enable
         self.triggered_read()
         res = self.read_until(b'\r\n').decode('utf-8').split(',')
+        res = [item for sublist in (r.split() for r in res) for item in sublist]
         return ret_map[key](res)
