@@ -32,14 +32,31 @@ class TestOpenScale(TestCase):
                 'q) Raw reading [{}]\r\n' \
                 'c) Trigger character: [{}]\r\n' \
                 'x) Exit\r\n' \
-                '>'
+                '>'  # \
+
+    # .format(
+    #            randrange(-2 ** 31, 2 ** 31 - 1),  # tare
+    #            randrange(-2 ** 31, 2 ** 31 - 1),  # cal
+    #            randrange(0, 2 ** 16 - 1),  # timestamp
+    #            randrange(450, 1000),  # report rate
+    #            choice(OpenScale.BAUDRATES),  # baud
+    #            choice(('kg', 'lbs')),  # units
+    #            randrange(1, 10),  # decimal places
+    #            randrange(1, 10),  # averages
+    #            choice(('On', 'Off')),  # local temp
+    #            choice(('On', 'Off')),  # remote temp
+    #            choice(('Blink', 'Off')),  # status led
+    #            choice(('On', 'Off')),  # trigger enable
+    #            choice(('On', 'Off')),  # raw read enable
+    #            randrange(33, 126)  # trigger char
+    #            )
 
     def monkey_patch_serial(self):
         def open(cls):
             cls.is_open = True
 
         OpenScale._reconfigure_port = lambda arg: True
-        OpenScale.read_until = lambda self, terminator: self.dummy_res
+        OpenScale.read_until = lambda s, terminator: self.dummy_res
         OpenScale.open = open
         OpenScale.reset_input_buffer = lambda *args: True
         OpenScale.write = lambda *args: True
@@ -60,9 +77,9 @@ class TestOpenScale(TestCase):
         trigger = choice(('On', 'Off'))
         raw = choice(('On', 'Off'))
         trigger_char = randrange(33, 126)
-        self.dummy_res.format(tare, cal, timestamp, report_rate, baudrate, units,
-                              decimal_places, avgs, local, remote, led, trigger,
-                              raw, trigger_char).encode('utf-8')
+        self.dummy_res = self.dummy_res.format(tare, cal, timestamp, report_rate, baudrate, units,
+                                               decimal_places, avgs, local, remote, led, trigger,
+                                               raw, trigger_char).encode('utf-8')
         timestamp = False if timestamp == 'Off' else True
         local = False if local == 'Off' else True
         remote = False if remote == 'Off' else True
@@ -326,7 +343,18 @@ class TestOpenScale(TestCase):
         scale.triggered_read()
         self.assertEqual(wrote_chr, trigger_char, 'mismatch of triggered read char')
 
+    def test_to_force(self):
+        avgs, baudrate, cal, decimal_places, led, local, raw, remote, report_rate, \
+        scale, tare, timestamp, trigger, trigger_char, units = self.gen_fake_menu()
+
+        reading = uniform(-1000.0, 1000.0)
+
+        self.assertAlmostEqual(scale.to_force(reading, units),
+                               reading * (9.80665 if units == 'kg' else 32.174049),
+                               'conversion failed!')
+
 
 if __name__ == '__main__':
     import unittest
+
     unittest.main()

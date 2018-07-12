@@ -37,7 +37,7 @@ class OpenScale(serial.Serial):
     # b't) Serial trigger [On|Off]\r\n'\
     # b'q) Raw reading [On|Off]\r\n'\
     # b'c) Trigger character: [\d+]\r\n'\
-    # b'x) Exit'\r\n\
+    # b'x) Exit\r\n'\
     # b'>'
 
     prompt_indexes = (
@@ -527,3 +527,10 @@ class OpenScale(serial.Serial):
         res = self.read_until(b'\r\n').decode('utf-8').split(',')
         res = [item for sublist in (r.split() for r in res) for item in sublist]
         return ret_map[key](res)
+
+    @staticmethod
+    def to_force(reading, units):
+        if units == 'kg':
+            return reading * 9.80665  # returns N
+        else:
+            return reading * 32.174049  # returns lbf
