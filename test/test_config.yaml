@@ -19,7 +19,7 @@ ACTIONS: &ACTIONS  # actions that chain are done in reverse order, ie last liste
       params:
         low: *LIMIT_LOW
         high: *LIMIT_HIGH
-      nxt:
+      nxt:  
         success: *CLEANUP
   - !Action &RESET_MAX
     name: RESET_MAX

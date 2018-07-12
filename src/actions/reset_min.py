@@ -14,8 +14,6 @@ Description:
 from libs.hal import actuator
 
 
-def reset_min(interface=actuator, params=None, nxt=None):
-    if nxt is None:
-        nxt = {'success': None}
+def reset_min(interface=actuator, params=None):
     interface.reset_min()
-    return nxt['success']
+    return 'success'

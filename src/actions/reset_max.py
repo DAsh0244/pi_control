@@ -13,8 +13,6 @@ Description:
 from libs.hal import actuator
 
 
-def reset_max(interface=actuator, params=None, nxt=None):
-    if nxt is None:
-        nxt = {'success': None}
+def reset_max(interface=actuator, params=None):
     interface.reset_max()
-    return nxt['success']
+    return 'success'

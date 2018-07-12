@@ -12,34 +12,58 @@ Description:
 """
 # prototype action function signature:
 #
-# from typing import Callable
-#
-#
-# def some_action(interface: object, params: dict, nxt: (dict, None)) -> (Callable, None):
+# def some_action(interface: obj, params: dict) -> str:
 #     """
 #     Action description
-#     ...
+#
 #     :param interface: base interface abstraction layer that is performing an action.
 #     :param params: dictionary of the form
 #     	{'param0':<val>, 'param1':<val>, ..., 'paramN':<val>}
-#     :param nxt: dictionary of state transitions in the form
-#     	{<condition>:<action_func>, <condition>:<action_func>, None:<action_func>}
 #     """
 #     condition = None
 #     # stuff happens here -- eval and assign the desired value for condition
 #     ...
-#     return nxt.get(condition, nxt)
+#
+#     return condition
 
+import os
+from typing import Iterable as _Iterable
+from importlib import import_module as _import_module
+from enum import (
+    Enum as _Enum,
+    auto as _auto,
+)
+
+from libs.utils import nop
+from .set_pos import set_pos
+from .cleanup import cleanup
 from .calibrate import calibrate
 from .reset_max import reset_max
 from .reset_min import reset_min
-from .cleanup import cleanup
-from .set_pos import set_pos
+
+
+class Status(_Enum):
+    success = _auto()
+    failure = _auto()
+    error = _auto()
+
 
 actions = {'RESET_MIN': reset_min,
            'RESET_MAX': reset_max,
            'GOTO_POS': set_pos,
            'CLEANUP': cleanup,
-           None: lambda: None,
-           'None': lambda: None,
+           None: nop,
+           'None': nop,
            }
+
+
+def generate_statuses(conditions: _Iterable):
+    for condition in conditions:
+        setattr(Status, condition, _auto())
+
+
+def generate_actions():
+    for module in os.listdir(os.curdir):
+        if module in {'readme.md', '__init__.py'}:
+            continue
+        actions[module.upper()] = _import_module('{0}.{0}'.format(module))

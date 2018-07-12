@@ -135,7 +135,7 @@ def check_configurations(actuator_interface, controller):
     pos_sense.stop()
 
 
-def calibrate(interface, params, nxt=None):
+def calibrate(interface, params):
     # noinspection SpellCheckingInspection
     """
         calibrate actuator control
@@ -162,8 +162,6 @@ def calibrate(interface, params, nxt=None):
             7. confirm cal data
         """
     # calibrate thresholds:
-    if nxt is None:
-        nxt = {'true': None}
     calibrate_position(interface)
     # set control scheme:
     set_controller()
@@ -184,4 +182,4 @@ def calibrate(interface, params, nxt=None):
         while not os.access(os.path.dirname(outfile), os.W_OK):
             outfile = input('enter valid config file name: ').strip()
         save_config(outfile)
-    return nxt['true']
+    return 'success'

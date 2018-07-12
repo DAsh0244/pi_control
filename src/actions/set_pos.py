@@ -14,6 +14,6 @@ Description:
 from libs.hal import actuator
 
 
-def set_pos(interface=None, params=(actuator.pos_limit_low + actuator.pos_limit_high) >> 1, nxt=None):
-    actuator.set_position(*params)
-    return nxt
+def set_pos(interface=actuator, params=(actuator.pos_limit_low + actuator.pos_limit_high) >> 1):
+    interface.set_position(*params)
+    return 'success'

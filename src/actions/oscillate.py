@@ -15,7 +15,7 @@ from libs.hal import actuator
 from time import perf_counter
 
 
-def oscillate(interface=actuator, params=None, nxt=None):
+def oscillate(interface=actuator, params=None):
     """
     Moves from thresholds described in params dict with keys of 'low_pos', 'high_pos'.
     Movement speed is defined in params dict with the 'speed' key.
@@ -27,13 +27,11 @@ def oscillate(interface=actuator, params=None, nxt=None):
         - timeout is specified with the 'timeout' key and expects a float
         - repetitions is specified with the 'repetitions' key and expects an int
     """
-    if nxt is None:
-        nxt = {'success': None}
     condition = 'success'
     low_pos = params['low_pos']
     high_pos = params['high_pos']
-    timeout = params.get('timeout', None)
-    repetitions = params.get('repetitions', None)
+    timeout = params.get('timeout', float('inf'))
+    repetitions = params.get('repetitions', float('inf'))
     controller = params.get('controller', None)
     repeats = 0
     start = perf_counter()
@@ -46,4 +44,4 @@ def oscillate(interface=actuator, params=None, nxt=None):
             interface.set_position(low_pos)
         else:
             interface.set_position(low_pos)
-    return nxt[condition]
+    return condition
