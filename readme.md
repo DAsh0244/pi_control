@@ -127,6 +127,7 @@ For more complete documentation, see the routine's [readme][routines].
 A traditional implementation of a [PID][pid] controller. Able to be put in-line as a controller for the Actuator. It accepts a reference input, an output, and an input.
 
 #### Custom operation profiles:
+
 These are accomplished as a combination of actions and routines. For more information see the related sections.
 
 [//]:#(refs)

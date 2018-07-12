@@ -6,6 +6,8 @@ from libs.utils import (
     sop as _sop,
     in2mm
 )
+from libs.max31856 import MAX31856
+from libs.sparkfun_openscale import OpenScale
 
 # import hardware interfaces
 try:
@@ -54,11 +56,13 @@ except ImportError:
         stop_adc = _nop
         start_adc = start_adc_comparator = get_last_result = read_adc = _sop
 
+
 # meta information
 GLOBAL_VCC = 3.3
 TIMEOUT = None
 UNITS = 'raw'
 OUTFILE = None
+LOAD_CELL_PORT = 'COM10'
 
 # pin mappings
 PINS = {
@@ -75,7 +79,7 @@ class _ADS1115(ADS1115):
     bits = 16
     levels = 1 << bits
     max_level = (levels >> 1) - 1
-    min_level = levels >> 1
+    min_level = -1 * (levels >> 1)
     pga_map = {2 / 3: 6.144,  # map of gain values vs max peak readable voltage
                1: 4.096,
                2: 2.048,
@@ -110,7 +114,7 @@ class _ADS1115(ADS1115):
         self.default_channel = default_channel
         self.alert_pin = alert_pin
         self.step_size = 2 * self.max_voltage / self.levels
-        self.history = _deque(maxlen=history_len)
+        self.history: _deque = _deque(maxlen=history_len)
         super().__init__()
 
     def get_last_result(self):
@@ -180,14 +184,14 @@ class _MCP4725(MCP4725):
     """
     bits = 12
     levels = 1 << bits
-    vcc = GLOBAL_VCC
-    step_size = vcc / levels
-    default_val = levels >> 2  # default is 1/4 speed
     stop = 0
 
-    def __init__(self, *args, history_len=20, **kwargs):
+    def __init__(self, vcc=GLOBAL_VCC, *args, history_len=20, **kwargs):
         self.value_history = _deque(maxlen=history_len)  # holds previous values
         self.value = 0  # holds current value
+        self.vcc = vcc
+        self.step_size = vcc / self.levels
+        self.default_val = self.levels >> 2  # default is 1/4 speed
         super().__init__(*args, **kwargs)
 
     def set_level(self, level):
@@ -350,10 +354,50 @@ class Actuator:
         self.set_position(self.pos_limit_low)
 
 
+class Thermocouple(MAX31856):
+    def __init__(self, tc_type, num_avgs, *args, **kwargs):
+        super().__init__(tc_type=tc_type, avgsel=num_avgs, *args, **kwargs)
+        self._tc_type_str = tc_type
+        self._avg_samples = num_avgs
+
+    def read_temp(self):
+        return super().read_temp_c()
+
+    def read_internal_temp(self):
+        return super().read_internal_temp_c()
+
+    @property
+    def fault_register(self):
+        return super().read_fault_register()
+
+    @property
+    def thermocouple_type(self):
+        return self._tc_type_str
+
+    @thermocouple_type.setter
+    def thermocouple_type(self, value):
+        self._tc_type_str = value
+        self.tc_type = self.THERMOCOUPLE_MAP[value]
+        cr1 = ((self.avgsel << 4) + self.tc_type)
+        self._write_register(self.MAX31856_REG_WRITE_CR1, cr1)
+
+    @property
+    def averaging_samples(self):
+        return self._avg_samples
+
+    @averaging_samples.setter
+    def averaging_samples(self, value):
+        self._avg_samples = value
+        self.avgsel = self.SAMPLE_MAP[value]
+        cr1 = ((self.avgsel << 4) + self.tc_type)
+        self._write_register(self.MAX31856_REG_WRITE_CR1, cr1)
+
+
 # instantiate HW
 adc = _ADS1115(default_channel=1)
 dac = _MCP4725()
-actuator = Actuator(position_sensor=adc, speed_controller=dac, force_sensor=None)
+load_cell = OpenScale(port=LOAD_CELL_PORT)
+actuator = Actuator(position_sensor=adc, speed_controller=dac, force_sensor=load_cell)
 
 
 # noinspection PyCallByClass

@@ -131,12 +131,12 @@ def dispatcher(arg_dict):
         cfg = load_config(arg_dict['config'])
         # coalesce = lambda key: cfg[key] or arg_dict[key]
         arg_dict.calc_correction({'timeout': cfg['TIMEOUT'] or arg_dict['timeout'],
-                         'sample_rate': cfg['adc.sample_rate'] or arg_dict['sample_rate'],
-                         'outfile': cfg['OUTFILE'] or arg_dict['outfile'],
-                         'units': cfg['UNITS'] or arg_dict['units'],
-                         'high_max': cfg['POS_LIMIT_HIGH'] or arg_dict['high_max'],
-                         'low_min': cfg['POS_LIMIT_LOW'] or arg_dict['low_min'],
-                         'high_threshold': cfg['POS_THRESHOLD_HIGH'] or arg_dict['high_threshold'],
+                                  'sample_rate': cfg['adc.sample_rate'] or arg_dict['sample_rate'],
+                                  'outfile': cfg['OUTFILE'] or arg_dict['outfile'],
+                                  'units': cfg['UNITS'] or arg_dict['units'],
+                                  'high_max': cfg['POS_LIMIT_HIGH'] or arg_dict['high_max'],
+                                  'low_min': cfg['POS_LIMIT_LOW'] or arg_dict['low_min'],
+                                  'high_threshold': cfg['POS_THRESHOLD_HIGH'] or arg_dict['high_threshold'],
                                   'low_threshold': cfg['POS_THRESHOLD_LOW'] or arg_dict['low_threshold'],
                                   })
         adc.sample_rate = arg_dict['sample_rate']
