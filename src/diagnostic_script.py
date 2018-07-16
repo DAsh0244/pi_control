@@ -5,10 +5,10 @@
 from collections import deque
 from time import strftime, perf_counter  # , sleep
 
-from actions import actions
+from orchestration.actions import action_map
 from launch import parser, cmds
 from libs.utils import load_config
-from actions.calibrate import calibrate
+from orchestration.actions.calibrate import calibrate
 from libs.hal import (
     adc,
     dac,
@@ -154,11 +154,11 @@ def dispatcher(arg_dict):
         actuator.pos_limit_high = arg_dict.pop('high_max')
         actuator.pos_threshold_low = arg_dict.pop('low_threshold')
         actuator.pos_threshold_high = arg_dict['high_threshold']
-        if arg_dict['action'] == actions['RESET_MIN']:
+        if arg_dict['action'] == action_map['RESET_MIN']:
             actuator.reset_min()
-        elif arg_dict['action'] == actions['RESET_MAX']:
+        elif arg_dict['action'] == action_map['RESET_MAX']:
             actuator.reset_max()
-        elif arg_dict['action'] == actions['GOTO_POS']:
+        elif arg_dict['action'] == action_map['GOTO_POS']:
             actuator.set_position(arg_dict['position'])
     elif arg_dict['cmd'] == cmds['RUN_ACQ']:
         monitor_adc_file(**arg_dict)

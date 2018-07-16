@@ -102,3 +102,15 @@ class BaseYamlConstruct(yaml.YAMLObject):
     def __repr__(self):
         return '{!s}({!s})'.format(self.__class__.__name__,
                                    ', '.join('{!s}={!r}'.format(k, v) for k, v in vars(self).items()))
+
+
+def yamlobj(tag):
+    def wrapper(cls):
+        def constructor(loader, node):
+            fields = loader.construct_mapping(node)
+            return cls(**fields)
+
+        yaml.add_constructor(tag, constructor)
+        return cls
+
+    return wrapper
