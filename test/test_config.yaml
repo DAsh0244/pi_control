@@ -38,6 +38,11 @@ ROUTINES: &ROUTINES
           '*': CLEANUP
         CLEANUP:
           '*': END
+    transitions:
+      START:
+        '*': RESET_MIN
+      RESET_MIN:
+        '*': END
   - !Routine
     name: reset_max
     units: *UNITS
@@ -52,3 +57,22 @@ ROUTINES: &ROUTINES
         '*': CLEANUP
       CLEANUP:
         '*': END
+  - !Routine
+      name: reset_min_max
+      units: *UNITS
+      output: stdout
+      actions:
+        RESET_MAX: *RESET_MAX
+        RESET_MIN: *RESET_MIN
+        CLEANUP: *CLEANUP
+      transitions:
+        START:
+          '*': RESET_MAX
+        RESET_MAX:
+          'success': RESET_MIN
+          'failure': START
+        RESET_MIN:
+          'success': CLEANUP
+          'failure': RESET_MAX
+        CLEANUP:
+          '*': END

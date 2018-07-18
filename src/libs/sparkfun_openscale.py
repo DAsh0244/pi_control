@@ -490,7 +490,7 @@ class OpenScale(serial.Serial):
         self.write(self.cmds['close_menu'])
         return res
 
-    def get_reading(self) -> Tuple:
+    def get_reading(self, to_force=True) -> Tuple:
         # order is (if enabled) : comma separation, no whitespace:
         # timestamp -- toggleable -- int
         # calibrated_reading -- always printed -- float
@@ -499,23 +499,24 @@ class OpenScale(serial.Serial):
         # local_temp -- toggleable -- float
         # remote_temp -- toggleable -- float
         ret_map = {
-            # order: ret     (timestamp, cal_read, unit, raw, local, remote)
-            0b01000: lambda x: (None, float(x[0]), x[1], None, None, None),
-            0b01001: lambda x: (None, float(x[0]), x[1], None, None, float(x[2])),
-            0b01010: lambda x: (None, float(x[0]), x[1], None, float(x[2]), None),
-            0b01011: lambda x: (None, float(x[0]), x[1], None, float(x[2]), float(x[3])),
-            0b01100: lambda x: (None, float(x[0]), x[1], int(x[2]), None, None),
-            0b01101: lambda x: (None, float(x[0]), x[1], int(x[2]), None, float(x[3])),
-            0b01110: lambda x: (None, float(x[0]), x[1], int(x[2]), float(x[3]), None),
-            0b01111: lambda x: (None, float(x[0]), x[1], int(x[2]), float(x[3]), float(x[4])),
-            0b11000: lambda x: (int(x[0]), float(x[1]), x[2], None, None, None),
-            0b11001: lambda x: (int(x[0]), float(x[1]), x[2], None, None, float(x[3])),
-            0b11010: lambda x: (int(x[0]), float(x[1]), x[2], None, float(x[3]), None),
-            0b11011: lambda x: (int(x[0]), float(x[1]), x[2], None, float(x[3]), float(x[4])),
-            0b11100: lambda x: (int(x[0]), float(x[1]), x[2], int(x[3]), None, None),
-            0b11101: lambda x: (int(x[0]), float(x[1]), x[2], int(x[3]), None, float(x[4])),
-            0b11110: lambda x: (int(x[0]), float(x[1]), x[2], int(x[3]), float(x[4]), None),
-            0b11111: lambda x: (int(x[0]), float(x[1]), x[2], int(x[3]), float(x[4]), float(x[5])),
+            # order: ret       (timestamp,    cal_read, unit,       raw,       local,      remote)
+            # order: ret       ( int (ms),       float,  str,     int24,       float,       float)
+            0b01000: lambda x: [None, float(x[0]), x[1], None, None, None],
+            0b01001: lambda x: [None, float(x[0]), x[1], None, None, float(x[2])],
+            0b01010: lambda x: [None, float(x[0]), x[1], None, float(x[2]), None],
+            0b01011: lambda x: [None, float(x[0]), x[1], None, float(x[2]), float(x[3])],
+            0b01100: lambda x: [None, float(x[0]), x[1], int(x[2]), None, None],
+            0b01101: lambda x: [None, float(x[0]), x[1], int(x[2]), None, float(x[3])],
+            0b01110: lambda x: [None, float(x[0]), x[1], int(x[2]), float(x[3]), None],
+            0b01111: lambda x: [None, float(x[0]), x[1], int(x[2]), float(x[3]), float(x[4])],
+            0b11000: lambda x: [int(x[0]), float(x[1]), x[2], None, None, None],
+            0b11001: lambda x: [int(x[0]), float(x[1]), x[2], None, None, float(x[3])],
+            0b11010: lambda x: [int(x[0]), float(x[1]), x[2], None, float(x[3]), None],
+            0b11011: lambda x: [int(x[0]), float(x[1]), x[2], None, float(x[3]), float(x[4])],
+            0b11100: lambda x: [int(x[0]), float(x[1]), x[2], int(x[3]), None, None],
+            0b11101: lambda x: [int(x[0]), float(x[1]), x[2], int(x[3]), None, float(x[4])],
+            0b11110: lambda x: [int(x[0]), float(x[1]), x[2], int(x[3]), float(x[4]), None],
+            0b11111: lambda x: [int(x[0]), float(x[1]), x[2], int(x[3]), float(x[4]), float(x[5])],
         }
 
         key = (self._timestamp_enable << 4) | \
@@ -526,7 +527,10 @@ class OpenScale(serial.Serial):
         self.triggered_read()
         res = self.read_until(b'\r\n').decode('utf-8').split(',')
         res = [item for sublist in (r.split() for r in res) for item in sublist]
-        return ret_map[key](res)
+        data = ret_map[key](res)
+        if to_force:
+            data[1] = self.to_force(data[1], data[2])
+        return tuple(filter(None.__ne__, data))
 
     @staticmethod
     def to_force(reading, units):

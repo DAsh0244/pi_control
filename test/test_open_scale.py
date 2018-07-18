@@ -32,9 +32,7 @@ class TestOpenScale(TestCase):
                 'q) Raw reading [{}]\r\n' \
                 'c) Trigger character: [{}]\r\n' \
                 'x) Exit\r\n' \
-                '>'  # \
-
-    # .format(
+                '>'  # .format(
     #            randrange(-2 ** 31, 2 ** 31 - 1),  # tare
     #            randrange(-2 ** 31, 2 ** 31 - 1),  # cal
     #            randrange(0, 2 ** 16 - 1),  # timestamp

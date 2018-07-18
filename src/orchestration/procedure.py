@@ -12,8 +12,6 @@ Description:
 """
 
 from typing import Iterable as _Iterable
-# from transitions import Machine
-# from transitions.extensions import GraphMachine as Machine
 from libs.utils import BaseYamlConstruct
 from orchestration.actions import END_ACTION, ERROR_ACTION
 from orchestration.routines import Routine
@@ -84,6 +82,7 @@ class ProcedureExecutor:
         # start on start state
         transitions = routine.transitions
         current_action = routine.actions['START']
+        status = 'not_started'
         try:
             while current_action is not END_ACTION:
                 status = current_action.execute()
