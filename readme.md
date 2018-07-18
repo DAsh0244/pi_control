@@ -43,7 +43,7 @@ Currently the stack supports:
     - [ ] Strain measurement
 - Control:
 	- [x] [Actions](#actions)
-    - [ ] [Routines](#routines)
+    - [x] [Routines](#routines)
     - [x] [Configurable PID controller](#configurable-pid-controller)
     - [ ] [Custom operation profiles](#custom-operation-profiles)
 
