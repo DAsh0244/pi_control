@@ -25,6 +25,7 @@ from orchestration.routines import Routine
 
 
 # TODO: figure out validation -- looks like have to define a method in the from_yaml hook
+# https://github.com/an-oreo/pi_control/issues/6
 class Config(BaseYamlConstruct):
     yaml_tag = '!Config'
     type = 'CFG'

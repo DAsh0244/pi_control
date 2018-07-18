@@ -262,8 +262,6 @@ class MAX31856(object):
 
     def read_fault_register(self):
         """Return bytes containing fault codes and hardware problems.
-
-        TODO: Could update in the future to return human readable values
         """
         reg = self._read_register(self.MAX31856_REG_READ_FAULT)
         return reg

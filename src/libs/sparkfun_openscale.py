@@ -11,11 +11,16 @@ License: N/A
 Description: library for interfacing the Sparkfun OpenScale.
 """
 
+import os
+import yaml
 import serial
+from os.path import join as ospjoin
 from typing import Tuple, Dict, Union
 
 
 # todo: get some form of config dumping and loading implemented
+# https://github.com/an-oreo/pi_control/issues/10
+CFG_FILE_PATH = ospjoin(os.environ.get('OPENSCALE_CFG_PATH', '../../CONFIGS/'), 'openscale_cfg.yml')
 
 
 class OpenScale(serial.Serial):
@@ -538,3 +543,39 @@ class OpenScale(serial.Serial):
             return reading * 9.80665  # returns N
         else:
             return reading * 32.174049  # returns lbf
+
+    def save_config(self):
+        data = {
+            'tare': self._tare_val,
+            'calibrate': self._cal_value,
+            'timestamp_enable': self._timestamp_enable,
+            'report_rate': self._report_rate,
+            'units': self._units,
+            'decimal_places': self._decimal_places,
+            'num_avgs': self._num_avgs,
+            'local_temp_enable': self._local_temp_enable,
+            'remote_temp_enable': self._remote_temp_enable,
+            'status_led': self._status_led,
+            'trigger_enable': self._serial_trigger_enable,
+            'raw_read_enable': self._raw_reading_enable,
+            'trigger_char': self._trigger_char,
+        }
+        with open(CFG_FILE_PATH, 'w') as file:
+            file.write(yaml.dump(data))
+
+    def load_config(self):
+        with open(CFG_FILE_PATH, 'r') as file:
+            data = yaml.dump(file.read())
+        self._tare_val = data['tare']
+        self._cal_value = data['calibrate']
+        self._timestamp_enable = data['timestamp_enable']
+        self._report_rate = data['report_rate']
+        self._units = data['units']
+        self._decimal_places = data['decimal_places']
+        self._num_avgs = data['num_avgs']
+        self._local_temp_enable = data['local_temp_enable']
+        self._remote_temp_enable = data['remote_temp_enable']
+        self._status_led = data['status_led']
+        self._serial_trigger_enable = data['trigger_enable']
+        self._raw_reading_enable = data['raw_read_enable']
+        self._trigger_char = data['trigger_char']
