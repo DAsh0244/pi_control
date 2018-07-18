@@ -138,7 +138,6 @@ class TestOpenScale(TestCase):
         self.assertEqual(res['raw_reading'], raw, 'raw read enable status parsing failed')
         self.assertEqual(res['trigger_char'], trigger_char, 'trigger char parsing failed')
 
-    # todo implement testing for getters/setters
     def test_trigger_char(self):
         avgs, baudrate, cal, decimal_places, led, local, raw, remote, report_rate, \
         scale, tare, timestamp, trigger, trigger_char, units = self.gen_fake_menu()

@@ -73,21 +73,6 @@ def cleanup_log(logfile):
     raise NotImplementedError()
 
 
-def get_k_value(k_subscript):
-    k = 0
-    prompt = 'Enter Desired K{} Value: '.format(k_subscript)
-    while True:  # delay int conversion to handle invalid string inputs
-        val = input(prompt).strip()
-        try:
-            from math import isnan, isinf
-            k = float(val)
-            if isnan(k) or isinf(k):
-                raise ValueError()
-            return k
-        except ValueError:
-            pass
-
-
 def load_config(cfg_path):
     with open(cfg_path, 'r') as cfg_file:
         config = yaml.load(cfg_file)

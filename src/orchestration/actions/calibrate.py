@@ -13,9 +13,24 @@ Description:
 import os
 
 from libs.controller import PController, PDController, PIController, PIDController
-from libs.utils import get_k_value, save_config
+from libs.utils import save_config
 
 WAIT_TIMEOUT = 2
+
+
+def get_k_value(k_subscript):
+    k = 0
+    prompt = 'Enter Desired K{} Value: '.format(k_subscript)
+    while True:  # delay int conversion to handle invalid string inputs
+        val = input(prompt).strip()
+        try:
+            from math import isnan, isinf
+            k = float(val)
+            if isnan(k) or isinf(k):
+                raise ValueError()
+            return k
+        except ValueError:
+            pass
 
 
 def calibrate_position(actuator_interface):
@@ -25,7 +40,6 @@ def calibrate_position(actuator_interface):
     speed_ctrl = actuator_interface.speed_controller
     pos_sense = actuator_interface.position_sensor
     print('Beginning calibration routine...')
-    # TODO: figure out what relay 2 does
     actuator_interface.set_actuator_dir('forward')
     speed_ctrl.set_voltage(speed_ctrl.stop)
     print('Setting upper threshold')

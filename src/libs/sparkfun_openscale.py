@@ -18,8 +18,6 @@ from os.path import join as ospjoin
 from typing import Tuple, Dict, Union
 
 
-# todo: get some form of config dumping and loading implemented
-# https://github.com/an-oreo/pi_control/issues/10
 CFG_FILE_PATH = ospjoin(os.environ.get('OPENSCALE_CFG_PATH', '../../CONFIGS/'), 'openscale_cfg.yml')
 
 
