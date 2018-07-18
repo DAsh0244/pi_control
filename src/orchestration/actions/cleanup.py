@@ -16,9 +16,13 @@ from libs.hal import hal_cleanup
 
 
 # noinspection PyUnusedLocal
-def cleanup(interface=None, params=None, nxt=None):
+def cleanup(interface=None, params=None):
+    """
+    runs hal_cleanup() to safely reset pin configurations made over the course of usage.
+    does not require any passed parameters.
+    """
     print('cleaning')
     hal_cleanup()
     # stop conversions and logging
     # close any open file descriptors
-    return nxt
+    return 'success'

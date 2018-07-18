@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 """
 pi_control
-reset_min.py
+set_pos.py
 Author: Danyal Ahsanullah
 Date: 6/26/2018
 Copyright (c):  2018 Danyal Ahsanullah
@@ -14,8 +14,6 @@ Description:
 from libs.hal import actuator
 
 
-def reset_min(interface=actuator, params=None, nxt=None):
-    if nxt is None:
-        nxt = {'success': None}
-    interface.reset_min()
-    return nxt['success']
+def set_pos(interface=actuator, params=(actuator.pos_limit_low + actuator.pos_limit_high) >> 1):
+    interface.set_position(*params)
+    return 'success'

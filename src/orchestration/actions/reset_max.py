@@ -3,17 +3,16 @@
 # -*- coding: utf-8 -*-
 """
 pi_control
-set_pos.py
+reset_max.py
 Author: Danyal Ahsanullah
 Date: 6/26/2018
 Copyright (c):  2018 Danyal Ahsanullah
 License: N/A
 Description: 
 """
-
 from libs.hal import actuator
 
 
-def set_pos(interface=None, params=(actuator.pos_limit_low + actuator.pos_limit_high) >> 1, nxt=None):
-    actuator.set_position(*params)
-    return nxt
+def reset_max(interface=actuator, params=None):
+    interface.reset_max()
+    return 'success'

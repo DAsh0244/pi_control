@@ -3,18 +3,17 @@
 # -*- coding: utf-8 -*-
 """
 pi_control
-reset_max.py
+reset_min.py
 Author: Danyal Ahsanullah
 Date: 6/26/2018
 Copyright (c):  2018 Danyal Ahsanullah
 License: N/A
 Description: 
 """
+
 from libs.hal import actuator
 
 
-def reset_max(interface=actuator, params=None, nxt=None):
-    if nxt is None:
-        nxt = {'success': None}
-    interface.reset_max()
-    return nxt['success']
+def reset_min(interface=actuator, params=None):
+    interface.reset_min()
+    return 'success'

@@ -1,44 +1,67 @@
 # global configuration parameters
-CONFIG: &CONFIG !Config
+CONFIG: &CONFIG
   version: 0.0.1
   units: &UNITS raw
-  lower_limit: &LIMIT_LOW 0
+  lower_limit: &LIMIT_LOW 750
   upper_limit: &LIMIT_HIGH 20000
   adc_sample_rate: 860
   adc_gain: 1
   adc_channel: 1
 # define any actions that you want to reuse multiple times in multiple routines
-# ensure you overwrite the nxt table on each usage if needed
-ACTIONS: &ACTIONS  # actions that chain are done in reverse order, ie last listed first.
-  - !Action &CLEANUP
-      name: CLEANUP
-      nxt:
-        success: None
-  - !Action &RESET_MIN
-      name: RESET_MIN
-      params:
-        low: *LIMIT_LOW
-        high: *LIMIT_HIGH
-      nxt:  
-        success: *CLEANUP
-  - !Action &RESET_MAX
-    name: RESET_MAX
+ACTIONS: &ACTIONS
+  CLEANUP: !Action &CLEANUP
+    name: CLEANUP
+  RESET_MIN:  !Action &RESET_MIN
+    name: RESET_MIN
     params:
+      units: *UNITS
       low: *LIMIT_LOW
       high: *LIMIT_HIGH
-    nxt:
-      success: *RESET_MIN
-      failure: *CLEANUP
+  RESET_MAX: !Action &RESET_MAX
+    name: RESET_MAX
+    params:
+      units: *UNITS
+      low: *LIMIT_LOW
+      high: *LIMIT_HIGH
 # begin routine definitions
 ROUTINES: &ROUTINES
   - !Routine
     name: reset_min
     units: *UNITS
     actions:
-      - *RESET_MIN
+      RESET_MIN: *RESET_MIN
+    transitions:
+      START:
+        '*': RESET_MIN
+      RESET_MIN:
+        '*': END
   - !Routine
     name: reset_max
     units: *UNITS
     output: stdout
     actions:
-      - *RESET_MAX
+      RESET_MAX: *RESET_MAX
+    transitions:
+      START:
+        '*': RESET_MAX
+      RESET_MAX:
+        '*': END
+  - !Routine
+      name: reset_min_max
+      units: *UNITS
+      output: stdout
+      actions:
+        RESET_MAX: *RESET_MAX
+        RESET_MIN: *RESET_MIN
+        CLEANUP: *CLEANUP
+      transitions:
+        START:
+          '*': RESET_MAX
+        RESET_MAX:
+          'success': RESET_MIN
+          'failure': START
+        RESET_MIN:
+          'success': CLEANUP
+          'failure': RESET_MAX
+        CLEANUP:
+          '*': END

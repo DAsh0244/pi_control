@@ -95,14 +95,14 @@ def check_configurations(actuator_interface, controller):
     print('Set High: {}'.format(actuator_interface.pos_threshold_high))
     actuator_interface.set_actuator_dir('forward')
     speed_ctrl.set_level(1024)
-    value = pos_sense.start_conversions()
+    # value = pos_sense.start_conversions()
+    value = pos_sense.read_single()
     while not flag:
         if value >= actuator_interface.pos_limit_high:
             print('Hit absolute max limit', value)
             actuator_interface.set_actuator_dir('backward')
             flag = True
-        pos_sense.wait_for_sample(timeout=WAIT_TIMEOUT)
-        value = pos_sense.get_last_result()
+        value = pos_sense.read_single()
     flag = False
     value = pos_sense.get_last_result()
     while not flag:
@@ -110,32 +110,29 @@ def check_configurations(actuator_interface, controller):
             print('Hit absolute min limit', value)
             actuator_interface.set_actuator_dir('forward')
             flag = True
-        pos_sense.wait_for_sample(timeout=WAIT_TIMEOUT)
-        value = pos_sense.get_last_result()
+        value = pos_sense.read_single()
     flag = False
-    value = pos_sense.get_last_result()
+    value = pos_sense.read_single()
     while not flag:
         if value >= actuator_interface.pos_threshold_high:
             print('Hit designated max limit', value)
             actuator_interface.set_actuator_dir('backward')
             flag = True
-        pos_sense.wait_for_sample(timeout=WAIT_TIMEOUT)
-        value = pos_sense.get_last_result()
+        value = pos_sense.read_single()
     flag = False
-    value = pos_sense.get_last_result()
+    value = pos_sense.read_single()
     while not flag:
         if value <= actuator_interface.pos_threshold_low:
             speed_ctrl.set_voltage(speed_ctrl.stop)
             print('Hit designated min limit', value)
             actuator_interface.set_actuator_dir('forward')
             flag = True
-        pos_sense.wait_for_sample(timeout=WAIT_TIMEOUT)
         value = pos_sense.get_last_result()
     speed_ctrl.set_level(speed_ctrl.stop)
     pos_sense.stop()
 
 
-def calibrate(interface, params, nxt=None):
+def calibrate(interface, params):
     # noinspection SpellCheckingInspection
     """
         calibrate actuator control
@@ -162,8 +159,6 @@ def calibrate(interface, params, nxt=None):
             7. confirm cal data
         """
     # calibrate thresholds:
-    if nxt is None:
-        nxt = {'true': None}
     calibrate_position(interface)
     # set control scheme:
     set_controller()
@@ -184,4 +179,4 @@ def calibrate(interface, params, nxt=None):
         while not os.access(os.path.dirname(outfile), os.W_OK):
             outfile = input('enter valid config file name: ').strip()
         save_config(outfile)
-    return nxt['true']
+    return 'success'

@@ -36,8 +36,50 @@ THE SOFTWARE.
 # import warnings
 # import math
 
-import Adafruit_GPIO as Adafruit_GPIO
-import Adafruit_GPIO.SPI as SPI
+try:
+    import Adafruit_GPIO as Adafruit_GPIO
+    import Adafruit_GPIO.SPI as SPI
+except ImportError:
+    from libs.utils import (
+        nop as _nop,
+        sop as _sop,
+    )
+    import warnings as _warnings
+    from time import sleep as _sleep
+    from random import randint as _randint
+
+    _warnings.warn('failed to load RPi.GPIO, using stub class for syntax checking', RuntimeWarning)
+
+
+    # noinspection PyUnusedLocal
+    class Adafruit_GPIO:
+        """quick stub class for GPIO"""
+        BCM = BOARD = IN = OUT = RISING = FALLING = BOTH = PUD_UP = PUD_DOWN = None
+        setmode = setup = input = cleanup = add_event_detect = remove_event_detect = _nop
+        HIGH = 1
+        LOW = 0
+
+        @staticmethod
+        def output(channel, level):
+            return _randint(0, 1)
+
+        get_platform_gpio = _nop
+
+        @staticmethod
+        def wait_for_edge(channel, edge, timeout):
+            _sleep(timeout // 1000)
+
+
+    # provides hardware abstraction layer for easier access to hardware functions
+
+    class SPI:
+        MSBFIRST = 0
+
+        class BitBang:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            set_clock_hz = set_mode = set_bit_order = transfer = _nop
 
 
 class MAX31856(object):

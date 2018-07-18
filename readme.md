@@ -127,14 +127,15 @@ For more complete documentation, see the routine's [readme][routines].
 A traditional implementation of a [PID][pid] controller. Able to be put in-line as a controller for the Actuator. It accepts a reference input, an output, and an input.
 
 #### Custom operation profiles:
+
 These are accomplished as a combination of actions and routines. For more information see the related sections.
 
 [//]:#(refs)
 
 [rpi]: https://www.raspberrypi.org/
 [yaml]: https://learnxinyminutes.com/docs/yaml/
-[actions]: src/actions/readme.md
-[routines]: src/routines/readme.md
+[actions]: src/orchestration/actions/readme.md
+[routines]: src/orchestration/routines/readme.md
 [max31856]: https://datasheets.maximintegrated.com/en/ds/MAX31856.pdf
 [adafruit_github_python]: https://github.com/johnrbnsn/Adafruit_Python_MAX31856
 [ads1115]: http://www.ti.com/lit/ds/symlink/ads1115.pdf

@@ -22,7 +22,7 @@ Usage:
 
 from argparse import ArgumentParser
 
-from actions import actions
+from orchestration.actions import action_map
 from launch.command_map import cmds
 from version import version as __version__
 from libs.hal import adc, actuator
@@ -57,8 +57,8 @@ test_positioning_parser.add_argument('-H', '--high_max', type=int, default=actua
 test_positioning_parser.add_argument('--help', action='help', help='print help')
 
 pos_subparsers = test_positioning_parser.add_subparsers(help='specific position action to take', dest='action')
-pos_subparsers.add_parser(actions['RESET_MIN'], help='reset to minimum extension')
-pos_subparsers.add_parser(actions['RESET_MAX'], help='reset to max extension')
+pos_subparsers.add_parser(action_map['RESET_MIN'], help='reset to minimum extension')
+pos_subparsers.add_parser(action_map['RESET_MAX'], help='reset to max extension')
 
 goto_parser = pos_subparsers.add_parser('goto_pos', help='go to desired position')
 goto_parser.add_argument('position', type=int, default=adc.levels >> 1,
