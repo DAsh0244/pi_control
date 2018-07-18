@@ -173,6 +173,7 @@ class _ADS1115(ADS1115):
         """
         return level * self.step_size
 
+    # https://github.com/an-oreo/pi_control/issues/7
     def voltage2level(self, voltage: float) -> int:  # todo: check if round or int division
         return round(voltage / self.step_size)
 
@@ -217,6 +218,7 @@ class _MCP4725(MCP4725):
         """
         return level * self.step_size
 
+    # https://github.com/an-oreo/pi_control/issues/7
     def voltage2level(self, voltage: float) -> int:  # todo: check if round or int division
         return round(voltage / self.step_size)
 
@@ -276,7 +278,7 @@ class Actuator:
     @wrap_dict_ts(('force', 'local_temp', 'timestamp'))
     def load(self) -> Tuple:
         load = self.force_sensor.get_reading()
-        return load  # guaranteed random todo: work on implementing this
+        return load
 
     @property
     @wrap_dict_ts(('speed',))
@@ -304,6 +306,7 @@ class Actuator:
 
     # will require speed vs voltage information
     # todo: get data for speed vs voltage info
+    # https://github.com/an-oreo/pi_control/issues/9
     def set_out_speed(self, speed) -> None:
         raise NotImplementedError('no information known for this')
 
