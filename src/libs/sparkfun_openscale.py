@@ -531,7 +531,7 @@ class OpenScale(serial.Serial):
         res = [item for sublist in (r.split() for r in res) for item in sublist]
         data = ret_map[key](res)
         if to_force:
-            data[1] = self.to_force(data[1], data[2])
+            data[1], data[2] = self.to_force(data[1], data[2])
         # todo: reorganize the ret_mapping to handle this
         if self.timestamp_enable:  # move timestamp to the end
             timestamp = data.pop(0)
@@ -541,9 +541,9 @@ class OpenScale(serial.Serial):
     @staticmethod
     def to_force(reading, units):
         if units == 'kg':
-            return reading * 9.80665  # returns N
+            return reading * 9.80665, 'N'  # returns N
         else:
-            return reading * 32.174049  # returns lbf
+            return reading * 32.174049, 'lbf'  # returns lbf
 
     def save_config(self):
         data = {

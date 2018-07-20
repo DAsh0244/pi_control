@@ -12,19 +12,18 @@ Description:
 """
 
 import sys
-from typing import Iterable as _Iterable
+from collections.abc import Mapping
+from typing import Iterable as _Iterable, Dict
 
-from libs.hal import hal_cleanup, A2D, actuator
+from libs.data_router import DataLogger
 from libs.utils import yamlobj, ReprMixIn
-from orchestration.actions import END_ACTION, ERROR_ACTION
+from libs.hal import hal_cleanup, A2D, actuator
 from orchestration.routines import Routine
+from orchestration.actions import END_ACTION, ERROR_ACTION
 
-
-# TODO: figure out validation
-# https://github.com/an-oreo/pi_control/issues/6
 
 @yamlobj('!Config')
-class Config(ReprMixIn):
+class Config(Mapping, ReprMixIn):
     type = 'CFG'
     accepted_units = {'raw', 'in', 'mm', 'N', 'lbf'}  # raw: A/D levels, imperial: in, lbf, metric: m, N
     accepted_adc_sample_rates = A2D.accepted_sample_rates
@@ -32,7 +31,7 @@ class Config(ReprMixIn):
     accepted_adc_channels = A2D.accepted_channels
 
     def __init__(self, version, len_units, force_units, upper_limit, lower_limit, pos_adc_sample_rate, pos_adc_gain,
-                 strain_adc_sample_rate, strain_adc_gain, pos_adc_channel=1, strain_adc_channel=3):
+                 strain_adc_sample_rate, strain_adc_gain, pos_adc_channel=1, strain_adc_channel=3, period: float = 0.1):
         # validation starts at units, version must exist
         if any(unit in self.accepted_units for unit in (len_units, force_units)) and version:
             # to be used for future releases
@@ -40,6 +39,7 @@ class Config(ReprMixIn):
             # units to use for input/output values. internally math is done independent of units
             self.len_units = len_units
             self.force_units = force_units
+            self.period = period
             # limits for actuator, stored and used in calculations as raw adc level
             self.upper_limit = actuator.convert_units[self.len_units](upper_limit)
             self.lower_limit = actuator.convert_units[self.len_units](lower_limit)
@@ -72,17 +72,26 @@ class Config(ReprMixIn):
         else:
             raise ValueError('Bad YAML configuration')
 
+    def __iter__(self):
+        for entry in ('version', 'len_units', 'force_units', 'upper_limit', 'lower_limit',
+                      'pos_adc_sample_rate', 'pos_adc_gain', 'pos_adc_channel',
+                      'strain_adc_sample_rate', 'strain_adc_gain', 'strain_adc_channel'):
+            yield entry
+
+    def __len__(self):
+        return 11
+
+    def __getitem__(self, item):
+        # print(self.__dict__)
+        return self.__dict__[item]
+
 
 def load_config(path):
     # from code import interact
     from pprint import pprint
     with open(path, 'r') as file:
-        docs = yaml.load(file)
-        # docs = yaml.load_all(file)
-        cfg = {}
-        for doc in docs:
-            cfg = eval(repr(doc))
-            pprint(cfg)
+        cfg = yaml.load(file)
+        pprint(cfg)
         return cfg
 
 
@@ -93,16 +102,17 @@ class ProcedureExecutor:
 
     routines = []
 
-    def __init__(self, routines: _Iterable[Routine]):
+    def __init__(self, config: Dict, routines: _Iterable[Routine]):
         self.routines.extend(routines)
+        self.logger = DataLogger(config=config)
 
     def run(self):
+        import time
+        start = time.time()
         for routine in self.routines:
             print('executing routine: {}'.format(routine.name))
             self.execute_routine(routine)
-
-    def get_data(self):
-        pass
+        print(time.time() - start)
 
     @staticmethod
     def execute_routine(routine):
@@ -117,6 +127,10 @@ class ProcedureExecutor:
         try:
             while current_action is not END_ACTION:
                 status = current_action.execute()
+                # #todo: remove if not simulating
+                # from time import sleep
+                # from random import uniform
+                # sleep(uniform(0.05,5))
                 # process status like for boolean actions
                 if status == 'error':
                     # raise warning
@@ -134,8 +148,9 @@ class ProcedureExecutor:
 if __name__ == '__main__':
     # config = load_config('../../test/test_config.yaml')
     import yaml
+    from pprint import pprint
 
-    with open('../../test/test_config.yaml') as file:
-        config = yaml.load(file)
-        executor = ProcedureExecutor(config['ROUTINES'])
-        executor.run()
+    # with open('../../test/test_config.yaml') as file:
+    config = load_config('../../test/test_config.yaml')
+    executor = ProcedureExecutor(config=config['CONFIG'], routines=config['ROUTINES'])
+    executor.run()

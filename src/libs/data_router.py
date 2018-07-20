@@ -13,8 +13,9 @@ Description: constructs for forwarding and logging various data values
 
 import os
 # import os.path as osp
-from time import perf_counter
+from threading import Thread, Lock
 from datetime import datetime
+from time import perf_counter, sleep
 from functools import wraps as _wraps
 from inspect import signature as _signature
 from typing import Dict, TextIO, Callable, FrozenSet, Iterable, Tuple
@@ -25,6 +26,7 @@ from version import version, prog_name
 
 # pub.subscribe(callback, topic)
 
+LOCK = Lock()
 DEFAULT_DATA_LOC: str = '../../DATA'
 TOPICS: FrozenSet = frozenset({
     'actuator.position',
@@ -36,7 +38,7 @@ TOPICS: FrozenSet = frozenset({
 
 THERMOCOUPLE_NAMES: Tuple[str, ...] = ('sample', 'ambient', 'fluid')
 COLUMNS: Dict[str, str] = {
-    'actuator.position': 'time (s), position ({length_units})\n',
+    'actuator.position': 'time (s), position ({len_units})\n',
     'actuator.speed': 'time (s), speed (raw)\n',
     'actuator.force': 'time (s), force ({force_units}), local_temp (C), timestamp (ms since loadcell powerup)\n',
     'thermocouple': 'time (s), temperature (C), internal temperature (C)\n',
@@ -57,6 +59,13 @@ COLUMNS: Dict[str, str] = {
 #             return data
 #         return wrapper
 #     return real_decorator
+
+PUBLISH_FUNCS = []
+
+
+def add_to_periodic_poll(method):
+    PUBLISH_FUNCS.append(method)
+
 
 def publish(topic: str, keys: Tuple[str, ...]):
     if topic not in TOPICS:
@@ -80,7 +89,6 @@ def publish(topic: str, keys: Tuple[str, ...]):
         else:
             raise ValueError('Keys mismatch to function returns annotation')
         return wrapper
-
     return real_decorator
 
 
@@ -121,12 +129,13 @@ class DataLogger:
         'actuator.speed': '{0[ts]},{0[speed]}\n'.format,
         'actuator.force': '{0[ts]},{0[force]},{0[local_temp]},{0[timestamp]}\n'.format,
         'thermocouple': '{0[ts]},{0[temp]},{0[internal_temp]}\n'.format,
-        'strain': '{0["ts"]},{0["strain"]}\n'.format,
+        'strain': '{0[ts]},{0[strain]}\n'.format,
     }
 
     def __init__(self, config: Dict, outdir: str = None):
         self.topic_map: Dict[str, str] = {}
         self.logs: Dict[str, TextIO] = {}
+        self.period = getattr(config, 'period', 0.1)
         if outdir is None:
             outdir = f'{DEFAULT_DATA_LOC}/{prog_name}_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}'
             os.makedirs(outdir, exist_ok=True)
@@ -149,6 +158,9 @@ class DataLogger:
                 self.logs[topic].write(
                     self.log_header.format(topic=topic, ts=ts, meta='') + COLUMNS[topic].format(**config))
         register_listeners(self.record_data, TOPICS)
+        self.timerThread = Thread(target=self.get_data, args=(self.period,))
+        self.timerThread.daemon = True
+        self.timerThread.start()
         self.start = perf_counter()
 
     def __del__(self):
@@ -156,9 +168,26 @@ class DataLogger:
             file.write('\n')
             file.close()
 
+    @staticmethod
+    def get_data(period):
+        """
+        force trigger publisher functions periodically to get data.
+        :return:
+        """
+        while True:
+            LOCK.acquire()
+            print('\nGETTING FUNCTIONS\n')
+            print(PUBLISH_FUNCS)
+            for func in PUBLISH_FUNCS:
+                print(func)
+                func()
+            LOCK.release()
+            sleep(period)
+
     def record_data(self, data, topic=pub.AUTO_TOPIC):
         # def record_data(self, data: Dict[str, Any], topic: str = pub.AUTO_TOPIC):
         topic = topic.getName()
         data['ts'] = perf_counter() - self.start  # datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         topic_meta = '.'.join(filter(None, (topic, data.pop('meta', ''))))
+        print('TOPIC META @@@@@@@@@@@@@@@@@@@@@@@@@@\n', topic_meta)
         self.logs[topic_meta].write(self.unpack_map[topic](data))

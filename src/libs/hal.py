@@ -1,6 +1,7 @@
 # hal.py
 import numpy as np
 from typing import Tuple
+from numbers import Real as _Real
 from collections import deque as _deque
 
 from libs.utils import (
@@ -8,19 +9,21 @@ from libs.utils import (
     sop as _sop,
     in2mm
 )
-from libs.data_router import publish
+from libs.data_router import publish, add_to_periodic_poll
 from libs.max31856 import MAX31856
 from libs.sparkfun_openscale import OpenScale as LoadCell
 
 # import hardware interfaces
 try:
     import RPi.GPIO as GPIO
+    import Adafruit_GPIO.SPI as SPI
 except ImportError:
     import warnings as _warnings
     from time import sleep as _sleep
     from random import randint as _randint
 
     _warnings.warn('failed to load RPi.GPIO, using stub class for syntax checking', RuntimeWarning)
+    _warnings.warn('failed to load Adafruit_GPIO, using stub class for syntax checking', RuntimeWarning)
 
     # noinspection PyUnusedLocal
     class GPIO:
@@ -38,6 +41,38 @@ except ImportError:
         def wait_for_edge(channel, edge, timeout):
             _sleep(timeout // 1000)
     # provides hardware abstraction layer for easier access to hardware functions
+
+    # noinspection PyUnusedLocal
+    class Adafruit_GPIO:
+        """quick stub class for GPIO"""
+        BCM = BOARD = IN = OUT = RISING = FALLING = BOTH = PUD_UP = PUD_DOWN = None
+        setmode = setup = input = cleanup = add_event_detect = remove_event_detect = _nop
+        HIGH = 1
+        LOW = 0
+
+        @staticmethod
+        def output(channel, level):
+            return _randint(0, 1)
+
+        get_platform_gpio = _nop
+
+        @staticmethod
+        def wait_for_edge(channel, edge, timeout):
+            _sleep(timeout // 1000)
+
+        # provides hardware abstraction layer for easier access to hardware functions
+
+
+    class SPI:
+        MSBFIRST = 0
+
+        class BitBang:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            set_clock_hz = set_mode = set_bit_order = transfer = _nop
+
+        SpiDev = BitBang
 
 try:
     from Adafruit_ADS1x15 import ADS1115
@@ -172,8 +207,7 @@ class _ADS1115(ADS1115):
         """
         return level * self.step_size
 
-    # https://github.com/an-oreo/pi_control/issues/7
-    def voltage2level(self, voltage: float) -> int:  # todo: check if round or int division
+    def voltage2level(self, voltage: float) -> int:
         return round(voltage / self.step_size)
 
     def stop(self):
@@ -217,8 +251,7 @@ class _MCP4725(MCP4725):
         """
         return level * self.step_size
 
-    # https://github.com/an-oreo/pi_control/issues/7
-    def voltage2level(self, voltage: float) -> int:  # todo: check if round or int division
+    def voltage2level(self, voltage: float) -> int:
         return round(voltage / self.step_size)
 
 
@@ -268,10 +301,22 @@ class Actuator:
             self.pos_limit_high = pos_limits.pop('high', self.pos_limit_high)
         if movement_controller is not None:
             self.movement_controller = movement_controller
+        add_to_periodic_poll(self._get_pos)
+        add_to_periodic_poll(self._get_speed)
+        add_to_periodic_poll(self._get_load)
+
+    def _get_pos(self):
+        return self.position
+
+    def _get_speed(self):
+        return self.speed
+
+    def _get_load(self):
+        return self.load
 
     @property
     @publish('actuator.position', ('pos_info',))
-    def position(self) -> int:
+    def position(self) -> _Real:
         """
         gets position as the units value
         :return: raw integer representation of position
@@ -314,15 +359,15 @@ class Actuator:
     def set_out_speed(self, speed) -> None:
         raise NotImplementedError('no information known for this')
 
-    def set_position(self, position: int) -> None:
+    def set_position(self, position: _Real) -> None:
         """
         sets actuator to provided position.
-        :type position: int
-        :param position: raw position value like those obtained form self.position
+        :param position: position value like those obtained form self.position
         :return: None
         """
-        value = self.position_sensor.read_single()
-        print(value)
+        # value = self.position_sensor.read_single()
+        value = self.position
+        # print(value)
         if value == position:
             return None
         if value >= position:
@@ -332,8 +377,10 @@ class Actuator:
         self.speed_controller.set_level(self.speed_controller.default_val)
         passed = False
         while True:
-            self.position_sensor.wait_for_sample()
-            value = self.position_sensor.get_last_result()
+            # self.position_sensor.wait_for_sample()
+            # value = self.position_sensor.get_last_result()
+            # value = self.position_sensor.read_single()
+            value = self.position
             print(self.speed_controller.value, value)
             if self.speed_controller.value == self.speed_controller.stop:
                 print('target achieved')
@@ -388,6 +435,7 @@ class Thermocouple(MAX31856):
         self._tc_type_str = tc_type
         self._avg_samples = num_avgs
         self.name = name
+        add_to_periodic_poll(self.get_temps)
 
     def read_temp(self):
         return super().read_temp_c()
@@ -433,6 +481,7 @@ class StrainGauge:
         self.gf = gf
         self.r_nom = r_nom
         self.cal_map = np.array([[], []])
+        add_to_periodic_poll(self.read_strain)
 
     @publish('strain', ('strain',))
     def read_strain(self):
@@ -468,7 +517,17 @@ adc = A2D(default_channel=1)
 dac = D2A()
 load_cell = LoadCell(port=LOAD_CELL_PORT)
 actuator = Actuator(position_sensor=adc, speed_controller=dac, force_sensor=load_cell)
+# todo: fix the soft/hard spi, configure naming ability.
+SPI_PORT = 0
+SPI_DEVICE = 0
+t1 = Thermocouple(name='ambient', tc_type='T', num_avgs=4, hardware_spi=SPI.SpiDev(SPI_PORT, SPI_DEVICE))
 
+SPI_PORT = 0
+SPI_DEVICE = 1
+t2 = Thermocouple(name='fluid', tc_type='T', num_avgs=4, hardware_spi=SPI.SpiDev(SPI_PORT, SPI_DEVICE))
+t3 = Thermocouple(name='sample', tc_type='T', num_avgs=4, software_spi={'clk': 13, 'cs': 5, 'do': 19, 'di': 26})
+# todo: fix configurability of strain gauge
+s1 = StrainGauge(interface=adc)
 
 # noinspection PyCallByClass
 def hal_init():

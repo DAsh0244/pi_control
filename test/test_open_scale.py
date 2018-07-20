@@ -35,7 +35,7 @@ class TestOpenScale(TestCase):
                 '>'  # .format(
     #            randrange(-2 ** 31, 2 ** 31 - 1),  # tare
     #            randrange(-2 ** 31, 2 ** 31 - 1),  # cal
-    #            randrange(0, 2 ** 16 - 1),  # timestamp
+    #            choice(('On', 'Off')),  # timestamp
     #            randrange(450, 1000),  # report rate
     #            choice(OpenScale.BAUDRATES),  # baud
     #            choice(('kg', 'lbs')),  # units

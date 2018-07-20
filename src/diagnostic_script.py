@@ -1,7 +1,4 @@
 #! /usr/bin/env python3
-
-# TODO: check if refactor works
-
 import os
 from collections import deque
 from time import (
@@ -20,7 +17,6 @@ from libs.controller import (
 from launch.cli_parser import (
     parser,
     cmds,
-    actions,
 )
 from libs.hal import (
     adc,
@@ -34,6 +30,7 @@ from libs.hal import (
 
 )
 
+from orchestration import action_map
 # globals for routines & ISRs
 ####################################################
 DATA = deque()
@@ -105,7 +102,6 @@ def calibrate_position():
     hand calibrate system position thresholds
     """
     print('Beginning calibration routine...')
-    # TODO: figure out what relay 2 does
     actuator.set_actuator_dir('forward')
     dac.set_voltage(dac.stop)
     print('Setting upper threshold')
@@ -384,11 +380,11 @@ def dispatcher(arg_dict):
         actuator.pos_limit_high = arg_dict.pop('high_max')
         actuator.pos_threshold_low = arg_dict.pop('low_threshold')
         actuator.pos_threshold_high = arg_dict['high_threshold']
-        if arg_dict['action'] == actions['RESET_MIN']:
+        if arg_dict['action'] == action_map['RESET_MIN']:
             reset_min()
-        elif arg_dict['action'] == actions['RESET_MAX']:
+        elif arg_dict['action'] == action_map['RESET_MAX']:
             reset_max()
-        elif arg_dict['action'] == actions['GOTO_POS']:
+        elif arg_dict['action'] == action_map['GOTO_POS']:
             actuator.set_position(arg_dict['position'])
     elif arg_dict['cmd'] == cmds['RUN_ACQ']:
         monitor_adc_file(**arg_dict)
