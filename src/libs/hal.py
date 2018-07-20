@@ -1,10 +1,16 @@
 # hal.py
+import numpy as np
+from typing import Tuple
+from collections import deque as _deque
+
 from libs.utils import (
     nop as _nop,
     sop as _sop,
     in2mm
 )
-from collections import deque as _deque
+from libs.data_router import publish
+from libs.max31856 import MAX31856
+from libs.sparkfun_openscale import OpenScale as LoadCell
 
 # import hardware interfaces
 try:
@@ -15,7 +21,6 @@ except ImportError:
     from random import randint as _randint
 
     _warnings.warn('failed to load RPi.GPIO, using stub class for syntax checking', RuntimeWarning)
-
 
     # noinspection PyUnusedLocal
     class GPIO:
@@ -52,13 +57,14 @@ except ImportError:
     class ADS1115:
         """quick stub class for ADS1115"""
         stop_adc = _nop
-        start_adc = start_adc_comparator = get_last_result = read_adc = _sop
+        start_adc = start_adc_comparator = get_last_result = read_adc = read_adc_difference = _sop
 
 # meta information
 GLOBAL_VCC = 3.3
 TIMEOUT = None
 UNITS = 'raw'
 OUTFILE = None
+LOAD_CELL_PORT = 'COM10'
 
 # pin mappings
 PINS = {
@@ -75,7 +81,7 @@ class _ADS1115(ADS1115):
     bits = 16
     levels = 1 << bits
     max_level = (levels >> 1) - 1
-    min_level = levels >> 1
+    min_level = -1 * (levels >> 1)
     pga_map = {2 / 3: 6.144,  # map of gain values vs max peak readable voltage
                1: 4.096,
                2: 2.048,
@@ -88,7 +94,7 @@ class _ADS1115(ADS1115):
     accepted_channels = {0, 1, 2, 3}
 
     def __init__(self, sample_rate: int = 128, gain: int = 1, vcc: float = GLOBAL_VCC, default_channel: int = 0,
-                 *extra, alert_pin: int = 21, history_len: int = 20):
+                 alert_pin: int = 21, history_len: int = 20):
         """
         initialize the ADS1115 interface
         :type history_len: int
@@ -110,7 +116,7 @@ class _ADS1115(ADS1115):
         self.default_channel = default_channel
         self.alert_pin = alert_pin
         self.step_size = 2 * self.max_voltage / self.levels
-        self.history = _deque(maxlen=history_len)
+        self.history: _deque = _deque(maxlen=history_len)
         super().__init__()
 
     def get_last_result(self):
@@ -158,7 +164,7 @@ class _ADS1115(ADS1115):
 
     def level2voltage(self, level: int) -> float:
         """
-
+        converts a discrete level to a corresponding voltage value
         :type level: int
         :param level: raw reading from ADC converted to voltage
         :rtype: float
@@ -166,8 +172,12 @@ class _ADS1115(ADS1115):
         """
         return level * self.step_size
 
+    # https://github.com/an-oreo/pi_control/issues/7
     def voltage2level(self, voltage: float) -> int:  # todo: check if round or int division
         return round(voltage / self.step_size)
+
+    def stop(self):
+        super().stop_adc()
 
 
 # dac wrapper
@@ -177,14 +187,14 @@ class _MCP4725(MCP4725):
     """
     bits = 12
     levels = 1 << bits
-    vcc = GLOBAL_VCC
-    step_size = vcc / levels
-    default_val = levels >> 2  # default is 1/4 speed
     stop = 0
 
-    def __init__(self, *args, history_len=20, **kwargs):
+    def __init__(self, vcc=GLOBAL_VCC, *args, history_len=20, **kwargs):
         self.value_history = _deque(maxlen=history_len)  # holds previous values
         self.value = 0  # holds current value
+        self.vcc = vcc
+        self.step_size = vcc / self.levels
+        self.default_val = self.levels >> 2  # default is 1/4 speed
         super().__init__(*args, **kwargs)
 
     def set_level(self, level):
@@ -199,16 +209,22 @@ class _MCP4725(MCP4725):
 
     def level2voltage(self, level: int) -> float:
         """
-
+        converts a discrete level to a corresponding voltage value
         :type level: int
-        :param level: raw reading from ADC converted to voltage
+        :param level: discrete level to convert to voltage
         :rtype: float
         :return: translated value
         """
         return level * self.step_size
 
+    # https://github.com/an-oreo/pi_control/issues/7
     def voltage2level(self, voltage: float) -> int:  # todo: check if round or int division
         return round(voltage / self.step_size)
+
+
+# alias abstractions ... will probably split these out and import with alias
+A2D = _ADS1115
+D2A = _MCP4725
 
 
 # setup wrapper for actuator
@@ -225,7 +241,8 @@ class Actuator:
                          }  # key is force (lbs)
     distance_per_volt = stroke / pot_voltage
 
-    def __init__(self, position_sensor, speed_controller, force_sensor, pos_limits: dict = None, units: str = 'raw'):
+    def __init__(self, position_sensor: A2D, speed_controller: D2A, force_sensor: LoadCell,
+                 pos_limits: dict = None, units: str = 'raw', movement_controller=None):
         """
         create an actuator interface
         :param position_sensor: ADC handle for position
@@ -234,29 +251,47 @@ class Actuator:
         :param pos_limits: dictionary of {'high':<int>, 'low':<int>} that enforce limits on positions
         :param units:
         """
+        self.convert_units = {
+            'raw': lambda level: level,
+            'in': lambda level: level * self.distance_per_level,
+            'mm': lambda level: in2mm(level * self.distance_per_level),
+        }
         self.position_sensor = position_sensor
         self.speed_controller = speed_controller
         self.force_sensor = force_sensor
         self.distance_per_level = self.distance_per_volt * self.position_sensor.step_size
-        self.pos_limit_low = 10
+        self.pos_limit_low = 5000
         self.pos_limit_high = 26000
+        self.units = units
         if pos_limits is not None:
             self.pos_limit_low = pos_limits.pop('low', self.pos_limit_low)
             self.pos_limit_high = pos_limits.pop('high', self.pos_limit_high)
-        self.units = units
+        if movement_controller is not None:
+            self.movement_controller = movement_controller
 
     @property
+    @publish('actuator.position', ('pos_info',))
     def position(self) -> int:
         """
-        gets position as raw value
+        gets position as the units value
         :return: raw integer representation of position
         """
-        return self.position_sensor.read_single()
+        return self.convert_units[self.units](self.position_sensor.read_single())
 
     @property
-    def load(self) -> int:
-        load = self.force_sensor.get_last_result()
-        return 4  # guaranteed random todo: work on implementing this
+    @publish('actuator.force', ('force', 'local_temp', 'timestamp'))
+    def load(self) -> Tuple[float, float, int]:
+        load = self.force_sensor.get_reading()
+        return load
+
+    @property
+    @publish('actuator.speed', ('speed',))
+    def speed(self):
+        return self.speed_controller.value
+
+    @speed.setter
+    def speed(self, value):
+        self.speed_controller.set_level(value)
 
     @staticmethod
     def set_actuator_dir(direction: str) -> None:
@@ -273,9 +308,11 @@ class Actuator:
         else:
             raise ValueError('unknown direction {!r}'.format(direction))
 
+    # will require speed vs voltage information
+    # todo: get data for speed vs voltage info
+    # https://github.com/an-oreo/pi_control/issues/9
     def set_out_speed(self, speed) -> None:
-        pass
-        # will require speed vs voltage information
+        raise NotImplementedError('no information known for this')
 
     def set_position(self, position: int) -> None:
         """
@@ -284,7 +321,7 @@ class Actuator:
         :param position: raw position value like those obtained form self.position
         :return: None
         """
-        value = self.position_sensor.start_conversions()
+        value = self.position_sensor.read_single()
         print(value)
         if value == position:
             return None
@@ -310,13 +347,19 @@ class Actuator:
                 if passed:
                     self.speed_controller.set_level(self.speed_controller.value >> 1)
                     passed = False
+                else:
+                    print('passed high target')
+                    passed = True
             else:  # not far enough, go forward
                 self.set_actuator_dir('forward')
                 if passed:
                     self.speed_controller.set_level(self.speed_controller.value >> 1)
                     passed = False
+                else:
+                    print('passed low target')
+                    passed = True
 
-    def level2position(self, level: int, units: str = 'in') -> float:
+    def level2position(self, level: int, units: str = 'im') -> float:
         """
         converts a integer level to a position value
         :type units: str
@@ -331,11 +374,100 @@ class Actuator:
         else:
             return pos
 
+    def reset_max(self):
+        self.set_position(self.pos_limit_high)
+
+    def reset_min(self):
+        self.set_position(self.pos_limit_low)
+
+
+class Thermocouple(MAX31856):
+
+    def __init__(self, name: str, tc_type, num_avgs, *args, **kwargs):
+        super().__init__(tc_type=tc_type, avgsel=num_avgs, *args, **kwargs)
+        self._tc_type_str = tc_type
+        self._avg_samples = num_avgs
+        self.name = name
+
+    def read_temp(self):
+        return super().read_temp_c()
+
+    def read_internal_temp(self):
+        return super().read_internal_temp_c()
+
+    @publish('thermocouple', ('meta', 'temp', 'internal_temp'))
+    def get_temps(self) -> Tuple[str, float, float]:
+        return self.name, self.read_temp(), self.read_internal_temp()
+
+    @property
+    def fault_register(self):
+        return super().read_fault_register()
+
+    @property
+    def thermocouple_type(self):
+        return self._tc_type_str
+
+    @thermocouple_type.setter
+    def thermocouple_type(self, value):
+        self._tc_type_str = value
+        self.tc_type = self.THERMOCOUPLE_MAP[value]
+        cr1 = ((self.avgsel << 4) + self.tc_type)
+        self._write_register(self.MAX31856_REG_WRITE_CR1, cr1)
+
+    @property
+    def averaging_samples(self):
+        return self._avg_samples
+
+    @averaging_samples.setter
+    def averaging_samples(self, value):
+        self._avg_samples = value
+        self.avgsel = self.SAMPLE_MAP[value]
+        cr1 = ((self.avgsel << 4) + self.tc_type)
+        self._write_register(self.MAX31856_REG_WRITE_CR1, cr1)
+
+
+class StrainGauge:
+    def __init__(self, interface: A2D, vcc: float = 5.0, gf: float = 2.0, r_nom: float = 350.0):
+        self.interface = interface
+        self.vcc = vcc
+        self.gf = gf
+        self.r_nom = r_nom
+        self.cal_map = np.array([[], []])
+
+    @publish('strain', ('strain',))
+    def read_strain(self):
+        raw = self.interface.read_adc_difference(3, gain=4, data_rate=860)
+        voltage = self.interface.level2voltage(raw) + (self.vcc / 2)
+        strain = (1 / voltage - 1) / self.gf
+        return strain
+
+    @publish('strain', ('strain',))
+    def read_adjusted_strain(self):
+        """
+        tries applying a linear piecewise interpolated to the read strain value as a correction factor.
+        :return:
+        """
+        strain = self.read_strain()
+        correction = np.interp(strain, self.cal_map[:, 0], self.cal_map[:, 1])
+        return strain + correction
+
+    def add_cal_point(self, target):
+        """
+        Call after the system is strained to a known strain value
+        successive calls with differing strain targets help form a better curve
+
+        recommendation is to call multiple times at various strains.
+        """
+        strain = self.read_strain()
+        diff = (target - strain)
+        self.cal_map = np.vstack((self.cal_map, [target, diff]))
+
 
 # instantiate HW
-adc = _ADS1115(default_channel=1)
-dac = _MCP4725()
-actuator = Actuator(position_sensor=adc, speed_controller=dac, force_sensor=None)
+adc = A2D(default_channel=1)
+dac = D2A()
+load_cell = LoadCell(port=LOAD_CELL_PORT)
+actuator = Actuator(position_sensor=adc, speed_controller=dac, force_sensor=load_cell)
 
 
 # noinspection PyCallByClass
@@ -343,12 +475,12 @@ def hal_init():
     # choose BCM or BOARD
     GPIO.setmode(GPIO.BCM)
     # setup pins
-    GPIO.setup(PINS['adc_alert'], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    # GPIO.setup(PINS['adc_alert'], GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.setup(PINS['relay_1'], GPIO.OUT)  # set GPIO17 as an output
     GPIO.setup(PINS['relay_2'], GPIO.OUT)  # set GPIO22 as an output
     # initialize output values
-    GPIO.output(PINS['relay_2'], 0)  # set GPIO22 to 0/GPIO.LOW/False
-    GPIO.output(PINS['relay_1'], 0)  # set GPIO22 to 0/GPIO.LOW/False
+    GPIO.output(PINS['relay_2'], GPIO.LOW)  # set GPIO22 to 0/GPIO.LOW/False
+    GPIO.output(PINS['relay_1'], GPIO.LOW)  # set GPIO22 to 0/GPIO.LOW/False
     dac.set_level(dac.stop)
 
 
@@ -358,9 +490,21 @@ def hal_cleanup():
     GPIO.cleanup()
 
 
-def set_config():
-    return None
+if __name__ == '__main__':
+    from libs.data_router import DataLogger
 
+    CONFIG = {
+        'length_units': 'mm',
+        'force_units': 'N',
+    }
 
-def load_config(config):
-    pass
+    Thermocouple.read_temp = lambda *args: 1.23456789
+    Thermocouple.read_internal_temp = lambda *args: 3.14159265358979323846264338
+    t1 = Thermocouple(name='ambient', tc_type='T', num_avgs=1, software_spi={'clk': 1, 'cs': 2, 'do': 3, 'di': 4})
+    t2 = Thermocouple(name='fluid', tc_type='T', num_avgs=1, software_spi={'clk': 1, 'cs': 2, 'do': 3, 'di': 4})
+    t3 = Thermocouple(name='sample', tc_type='T', num_avgs=1, software_spi={'clk': 1, 'cs': 2, 'do': 3, 'di': 4})
+    logger = DataLogger(config=CONFIG)
+    for i in range(1, 10):
+        print(t1.get_temps())
+        print(t2.get_temps())
+        print(t3.get_temps())

@@ -1,0 +1,85 @@
+# global configuration parameters
+CONFIG: !Config &CONFIG
+  version: 0.0.1
+  len_units: &UNITS_LEN raw
+  force_units: &UNITS_FORCE N
+  lower_limit: &LIMIT_LOW 750
+  upper_limit: &LIMIT_HIGH 20000
+  pos_adc_sample_rate: 128
+  pos_adc_gain: 1
+  pos_adc_channel: 1
+  strain_adc_sample_rate: 128
+  strain_adc_gain: 4
+  strain_adc_channel: 3
+# define any actions that you want to reuse multiple times in multiple routines
+ACTIONS: &ACTIONS
+  CLEANUP: !Action &CLEANUP
+    name: CLEANUP
+  RESET_MIN:  !Action &RESET_MIN
+    name: RESET_MIN
+    params:
+      units: *UNITS_LEN
+      low: *LIMIT_LOW
+      high: *LIMIT_HIGH
+  RESET_MAX: !Action &RESET_MAX
+    name: RESET_MAX
+    params:
+      units: *UNITS_LEN
+      low: *LIMIT_LOW
+      high: *LIMIT_HIGH
+# begin routine definitions
+ROUTINES: &ROUTINES
+  - !Routine
+    name: reset_min
+    exec: False
+    units: *UNITS_LEN
+    actions:
+      RESET_MIN: *RESET_MIN
+      CLEANUP: *CLEANUP
+    transitions:
+        START:
+          '*': RESET_MIN
+        RESET_MIN:
+          '*': CLEANUP
+        CLEANUP:
+          '*': END
+    transitions:
+      START:
+        '*': RESET_MIN
+      RESET_MIN:
+        '*': END
+  - !Routine
+    name: reset_max
+    exec: False
+    units: *UNITS_LEN
+    output: stdout
+    actions:
+      RESET_MAX: *RESET_MAX
+      CLEANUP: *CLEANUP
+    transitions:
+      START:
+        '*': RESET_MAX
+      RESET_MAX:
+        '*': CLEANUP
+      CLEANUP:
+        '*': END
+  - !Routine
+      name: reset_min_max
+      exec: True
+      units: *UNITS_LEN
+      output: stdout
+      actions:
+        RESET_MAX: *RESET_MAX
+        RESET_MIN: *RESET_MIN
+        CLEANUP: *CLEANUP
+      transitions:
+        START:
+          '*': RESET_MAX
+        RESET_MAX:
+          'success': RESET_MIN
+          'failure': START
+        RESET_MIN:
+          'success': CLEANUP
+          'failure': RESET_MAX
+        CLEANUP:
+          '*': END

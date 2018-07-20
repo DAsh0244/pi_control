@@ -23,7 +23,6 @@ from time import perf_counter
 from abc import ABC, abstractmethod
 
 
-# TODO: CONTROLLER REWORK
 class ControllerBase(ABC):
     coefficients = ()
 

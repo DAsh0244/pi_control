@@ -3,13 +3,17 @@
 # -*- coding: utf-8 -*-
 """
 pi_control
-launch/__init__.py
+reset_min.py
 Author: Danyal Ahsanullah
-Date: 6/15/2018
+Date: 6/26/2018
 Copyright (c):  2018 Danyal Ahsanullah
 License: N/A
 Description: 
 """
 
-from .cli_parser import parser
-from .command_map import cmds
+from libs.hal import actuator
+
+
+def reset_min(interface=actuator, params=None):
+    interface.reset_min()
+    return 'success'

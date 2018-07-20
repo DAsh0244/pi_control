@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 """
 pi_control
-__init__.py.py
+libs/__init__.py
 Author: Danyal Ahsanullah
 Date: 6/11/2018
 Copyright (c):  2018 Danyal Ahsanullah
