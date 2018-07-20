@@ -8,9 +8,9 @@ from libs.utils import (
     sop as _sop,
     in2mm
 )
+from libs.data_router import publish
 from libs.max31856 import MAX31856
 from libs.sparkfun_openscale import OpenScale as LoadCell
-from libs.utils import wrap_dict_ts
 
 # import hardware interfaces
 try:
@@ -252,6 +252,11 @@ class Actuator:
         :param pos_limits: dictionary of {'high':<int>, 'low':<int>} that enforce limits on positions
         :param units:
         """
+        self.convert_units = {
+            'raw': lambda level: level,
+            'in': lambda level: level * self.distance_per_level,
+            'mm': lambda level: in2mm(level * self.distance_per_level),
+        }
         self.position_sensor = position_sensor
         self.speed_controller = speed_controller
         self.force_sensor = force_sensor
@@ -266,22 +271,22 @@ class Actuator:
             self.movement_controller = movement_controller
 
     @property
-    @wrap_dict_ts(('pos_info',))
+    @publish('actuator.position', ('pos_info',))
     def position(self) -> int:
         """
-        gets position as raw value
+        gets position as the units value
         :return: raw integer representation of position
         """
-        return self.position_sensor.read_single()
+        return self.convert_units[self.units](self.position_sensor.read_single())
 
     @property
-    @wrap_dict_ts(('force', 'local_temp', 'timestamp'))
-    def load(self) -> Tuple:
+    @publish('actuator.force', ('force', 'local_temp', 'timestamp'))
+    def load(self) -> Tuple[float, float, int]:
         load = self.force_sensor.get_reading()
         return load
 
     @property
-    @wrap_dict_ts(('speed',))
+    @publish('actuator.speed', ('speed',))
     def speed(self):
         return self.speed_controller.value
 
@@ -355,7 +360,7 @@ class Actuator:
                     print('passed low target')
                     passed = True
 
-    def level2position(self, level: int, units: str = 'in') -> float:
+    def level2position(self, level: int, units: str = 'im') -> float:
         """
         converts a integer level to a position value
         :type units: str
@@ -378,10 +383,12 @@ class Actuator:
 
 
 class Thermocouple(MAX31856):
-    def __init__(self, tc_type, num_avgs, *args, **kwargs):
+
+    def __init__(self, name: str, tc_type, num_avgs, *args, **kwargs):
         super().__init__(tc_type=tc_type, avgsel=num_avgs, *args, **kwargs)
         self._tc_type_str = tc_type
         self._avg_samples = num_avgs
+        self.name = name
 
     def read_temp(self):
         return super().read_temp_c()
@@ -389,9 +396,9 @@ class Thermocouple(MAX31856):
     def read_internal_temp(self):
         return super().read_internal_temp_c()
 
-    @wrap_dict_ts(('temp', 'internal_temp'))
-    def get_temps(self):
-        return self.read_temp(), self.read_internal_temp()
+    @publish('thermocouple', ('meta', 'temp', 'internal_temp'))
+    def get_temps(self) -> Tuple[str, float, float]:
+        return self.name, self.read_temp(), self.read_internal_temp()
 
     @property
     def fault_register(self):
@@ -428,14 +435,14 @@ class StrainGauge:
         self.r_nom = r_nom
         self.cal_map = np.array([[], []])
 
-    @wrap_dict_ts(('strain',))
+    @publish('strain', ('strain',))
     def read_strain(self):
         raw = self.interface.read_adc_difference(3, gain=4, data_rate=860)
         voltage = self.interface.level2voltage(raw) + (self.vcc / 2)
         strain = (1 / voltage - 1) / self.gf
         return strain
 
-    @wrap_dict_ts(('strain',))
+    @publish('strain', ('strain',))
     def read_adjusted_strain(self):
         """
         tries applying a linear piecewise interpolated to the read strain value as a correction factor.
@@ -482,3 +489,23 @@ def hal_cleanup():
     dac.set_voltage(dac.stop)
     adc.stop_adc()
     GPIO.cleanup()
+
+
+if __name__ == '__main__':
+    from libs.data_router import DataLogger
+
+    CONFIG = {
+        'length_units': 'mm',
+        'force_units': 'N',
+    }
+
+    Thermocouple.read_temp = lambda *args: 1.23456789
+    Thermocouple.read_internal_temp = lambda *args: 3.14159265358979323846264338
+    t1 = Thermocouple(name='ambient', tc_type='T', num_avgs=1, software_spi={'clk': 1, 'cs': 2, 'do': 3, 'di': 4})
+    t2 = Thermocouple(name='fluid', tc_type='T', num_avgs=1, software_spi={'clk': 1, 'cs': 2, 'do': 3, 'di': 4})
+    t3 = Thermocouple(name='sample', tc_type='T', num_avgs=1, software_spi={'clk': 1, 'cs': 2, 'do': 3, 'di': 4})
+    logger = DataLogger(config=CONFIG)
+    for i in range(1, 10):
+        print(t1.get_temps())
+        print(t2.get_temps())
+        print(t3.get_temps())

@@ -23,9 +23,10 @@ class Routine:
     type = 'RTN'
 
     def __init__(self, name: str, units: str, actions: Dict[str, Union[None, Dict[str, Union[None, str, int, float]]]],
-                 transitions=None, output: str = 'stdout'):
+                 transitions=None, exec=True, output: str = 'stdout'):
         self.name = name
         self.units = units
+        self.exec = exec
         self.actions = actions
         self.actions['START'] = START_ACTION
         self.actions['END'] = END_ACTION

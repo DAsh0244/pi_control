@@ -11,6 +11,7 @@ License: N/A
 Description: 
 """
 
+import sys
 from libs.hal import actuator
 from time import perf_counter
 
@@ -61,7 +62,11 @@ def oscillate(interface=actuator, params=None):
                 interface.set_position(high_pos)
         interface.speed_controller.default_val = old_speed
         return '_'.join(('timeout' if repeats < repetitions else 'repeats', condition))
-    except Exception:
+    except Exception as e:
         interface.set_out_speed(interface.speed_controller.stop)
         interface.speed_controller.default_val = old_speed
+        sys.stderr.write(e)
+        sys.stderr.write('\n')
+        sys.stderr.write(str(sys.exc_info()))
+        sys.stderr.flush()
         return 'error'

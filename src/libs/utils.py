@@ -1,18 +1,19 @@
 # util.py
 # utility misc functions
 
-import numpy as np
-import yaml
-import warnings as _warnings
-from random import randint as _randint
-from functools import wraps as _wraps
-from typing import Tuple, Dict, Union
-from numbers import Real
-from datetime import datetime
+import numpy as _np
+import yaml as _yaml
 
-# import yaml as cfg_formatter
+import warnings as _warnings
+from numbers import Real as _Real
+# from datetime import datetime as _dt
+from functools import wraps as _wraps
+from random import randint as _randint
+from inspect import signature as _signature
+from typing import Tuple, Dict, Union, Iterable
 
 TS_PATTERN = "%Y_%m_%d_%H_%M_%S"
+
 
 def nop(*args, **kwargs):
     """function that matches any prototype and proceeds to do nothing"""
@@ -48,6 +49,11 @@ def kg2lbs(kg):
     return kg * 2.20462
 
 
+def kg2lbf(kg):
+    # 2.20462 * 32.1740485564
+    return kg * 70.9315509
+
+
 def kg2N(kg):
     return 9.80665 * kg
 
@@ -75,10 +81,10 @@ def cleanup_log(logfile):
 
 def load_config(cfg_path):
     with open(cfg_path, 'r') as cfg_file:
-        config = yaml.load(cfg_file)
+        config = _yaml.load(cfg_file)
     # for key, val in config.items():
     #     globals()[key] = val
-    return config
+    return config['CONFIG']
     # from pprint import pprint
     # pprint(globals())
 
@@ -103,7 +109,7 @@ def edit_config(cfg_path):
     pass
 
 
-class BaseYamlConstruct(yaml.YAMLObject):
+class ReprMixIn:
     type = None
 
     def __repr__(self):
@@ -120,14 +126,14 @@ def sinc_interp(x, s, u):
     http://phaseportrait.blogspot.com/2008/06/sinc-interpolation-in-matlab.html
     """
     if len(x) != len(s):
-        raise ValueError('x and s must be the same length')
+        raise ValueError('x ({}) and s ({}) must be the same length'.format(len(x), len(s)))
 
     # Find the period
-    T = s[1] - s[0]
+    t = s[1] - s[0]
 
-    sincM = np.tile(u, (len(s), 1)) - np.tile(s[:, np.newaxis], (1, len(u)))
+    sinc_m = _np.tile(u, (len(s), 1)) - _np.tile(s[:, _np.newaxis], (1, len(u)))
     # noinspection PyUnresolvedReferences
-    y = np.dot(x, np.sinc(sincM / T))
+    y = _np.dot(x, _np.sinc(sinc_m / t))
     return y
 
 
@@ -136,7 +142,8 @@ def yamlobj(tag):
         def constructor(loader, node):
             fields = loader.construct_mapping(node)
             return cls(**fields)
-        yaml.add_constructor(tag, constructor)
+
+        _yaml.add_constructor(tag, constructor)
         return cls
     return wrapper
 
@@ -148,14 +155,20 @@ def wrap_dict_ts(keys: Tuple[str]):
     :param keys: tuple of strings to be used as keys for the data values. note the order matters.
     :return: dictionary of the provided keys with associated data values
     """
-
     def _wrapper(func):
-        @_wraps(func)
-        def wrapper(*args, **kwargs) -> Dict[str, Union[str, Real]]:
-            data = {k: v for k, v in zip(keys, func(*args, **kwargs))}
-            data['ts'] = datetime.now().strftime(TS_PATTERN)
-            return data
-
+        fun_ret = _signature(func).return_annotation
+        if len(keys) == 1:
+            @_wraps(func)
+            def wrapper(*args, **kwargs):
+                return {keys[0]: func(*args, **kwargs)}
+        elif isinstance(fun_ret, Iterable) and len(str(fun_ret)[12:].split(',')) == len(keys):
+            @_wraps(func)
+            def wrapper(*args, **kwargs) -> Dict[str, Union[str, _Real]]:
+                data = {k: v for k, v in zip(keys, func(*args, **kwargs))}
+                # data['ts'] = _dt.now().strftime(TS_PATTERN)
+                return data
+        else:
+            raise ValueError('Keys mismatch to function returns annotation')
         return wrapper
 
     return _wrapper

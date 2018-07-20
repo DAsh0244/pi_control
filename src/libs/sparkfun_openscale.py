@@ -17,7 +17,6 @@ import serial
 from os.path import join as ospjoin
 from typing import Tuple, Dict, Union
 
-
 CFG_FILE_PATH = ospjoin(os.environ.get('OPENSCALE_CFG_PATH', '../../CONFIGS/'), 'openscale_cfg.yml')
 
 
@@ -493,7 +492,7 @@ class OpenScale(serial.Serial):
         self.write(self.cmds['close_menu'])
         return res
 
-    def get_reading(self, to_force=True) -> Tuple:
+    def get_reading(self, to_force=True):
         # order is (if enabled) : comma separation, no whitespace:
         # timestamp -- toggleable -- int
         # calibrated_reading -- always printed -- float
@@ -533,6 +532,10 @@ class OpenScale(serial.Serial):
         data = ret_map[key](res)
         if to_force:
             data[1] = self.to_force(data[1], data[2])
+        # todo: reorganize the ret_mapping to handle this
+        if self.timestamp_enable:  # move timestamp to the end
+            timestamp = data.pop(0)
+            data.append(timestamp)
         return tuple(filter(None.__ne__, data))
 
     @staticmethod

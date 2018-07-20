@@ -1,12 +1,17 @@
 # global configuration parameters
 CONFIG: &CONFIG
   version: 0.0.1
-  units: &UNITS raw
+  units: &UNITS
+    length: &UNITS_LEN raw
+    force: &UNITS_FORCE N
   lower_limit: &LIMIT_LOW 750
   upper_limit: &LIMIT_HIGH 20000
-  adc_sample_rate: 860
-  adc_gain: 1
-  adc_channel: 1
+  pos_adc_sample_rate: 128
+  pos_adc_gain: 1
+  pos_adc_channel: 1
+  strain_adc_sample_rate: 128
+  strain_adc_gain: 4
+  strain_adc_channel: 3
 # define any actions that you want to reuse multiple times in multiple routines
 ACTIONS: &ACTIONS
   CLEANUP: !Action &CLEANUP
@@ -27,6 +32,7 @@ ACTIONS: &ACTIONS
 ROUTINES: &ROUTINES
   - !Routine
     name: reset_min
+    exec: False
     units: *UNITS
     actions:
       RESET_MIN: *RESET_MIN
@@ -45,6 +51,7 @@ ROUTINES: &ROUTINES
         '*': END
   - !Routine
     name: reset_max
+    exec: False
     units: *UNITS
     output: stdout
     actions:
@@ -59,6 +66,7 @@ ROUTINES: &ROUTINES
         '*': END
   - !Routine
       name: reset_min_max
+      exec: True
       units: *UNITS
       output: stdout
       actions:
