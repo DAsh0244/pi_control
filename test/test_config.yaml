@@ -1,9 +1,8 @@
 # global configuration parameters
-CONFIG: &CONFIG
+CONFIG: !Config &CONFIG
   version: 0.0.1
-  units: &UNITS
-    length: &UNITS_LEN raw
-    force: &UNITS_FORCE N
+  len_units: &UNITS_LEN raw
+  force_units: &UNITS_FORCE N
   lower_limit: &LIMIT_LOW 750
   upper_limit: &LIMIT_HIGH 20000
   pos_adc_sample_rate: 128
@@ -19,13 +18,13 @@ ACTIONS: &ACTIONS
   RESET_MIN:  !Action &RESET_MIN
     name: RESET_MIN
     params:
-      units: *UNITS
+      units: *UNITS_LEN
       low: *LIMIT_LOW
       high: *LIMIT_HIGH
   RESET_MAX: !Action &RESET_MAX
     name: RESET_MAX
     params:
-      units: *UNITS
+      units: *UNITS_LEN
       low: *LIMIT_LOW
       high: *LIMIT_HIGH
 # begin routine definitions
@@ -33,7 +32,7 @@ ROUTINES: &ROUTINES
   - !Routine
     name: reset_min
     exec: False
-    units: *UNITS
+    units: *UNITS_LEN
     actions:
       RESET_MIN: *RESET_MIN
       CLEANUP: *CLEANUP
@@ -52,7 +51,7 @@ ROUTINES: &ROUTINES
   - !Routine
     name: reset_max
     exec: False
-    units: *UNITS
+    units: *UNITS_LEN
     output: stdout
     actions:
       RESET_MAX: *RESET_MAX
@@ -67,7 +66,7 @@ ROUTINES: &ROUTINES
   - !Routine
       name: reset_min_max
       exec: True
-      units: *UNITS
+      units: *UNITS_LEN
       output: stdout
       actions:
         RESET_MAX: *RESET_MAX

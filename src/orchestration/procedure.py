@@ -31,17 +31,18 @@ class Config(ReprMixIn):
     accepted_adc_gains = A2D.accepted_gains
     accepted_adc_channels = A2D.accepted_channels
 
-    def __init__(self, version, units, upper_limit, lower_limit, pos_adc_sample_rate, pos_adc_gain,
+    def __init__(self, version, len_units, force_units, upper_limit, lower_limit, pos_adc_sample_rate, pos_adc_gain,
                  strain_adc_sample_rate, strain_adc_gain, pos_adc_channel=1, strain_adc_channel=3):
         # validation starts at units, version must exist
-        if units in self.accepted_units and version:
+        if any(unit in self.accepted_units for unit in (len_units, force_units)) and version:
             # to be used for future releases
             self.version = version
             # units to use for input/output values. internally math is done independent of units
-            self.units = units
+            self.len_units = len_units
+            self.force_units = force_units
             # limits for actuator, stored and used in calculations as raw adc level
-            self.upper_limit = actuator.convert_units[self.units.get('length', self.units)](upper_limit)
-            self.lower_limit = actuator.convert_units[self.units.get('force', self.units)](lower_limit)
+            self.upper_limit = actuator.convert_units[self.len_units](upper_limit)
+            self.lower_limit = actuator.convert_units[self.len_units](lower_limit)
             # configuration for position adc channel
             if pos_adc_sample_rate in self.accepted_adc_sample_rates:
                 self.pos_adc_sample_rate = pos_adc_sample_rate
