@@ -59,7 +59,6 @@ except ImportError:
         stop_adc = _nop
         start_adc = start_adc_comparator = get_last_result = read_adc = read_adc_difference = _sop
 
-
 # meta information
 GLOBAL_VCC = 3.3
 TIMEOUT = None
