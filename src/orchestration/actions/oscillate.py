@@ -1,6 +1,3 @@
-#! /usr/bin/env python
-# vim:fileencoding=utf-8
-# -*- coding: utf-8 -*-
 """
 pi_control
 oscillate.py

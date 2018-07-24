@@ -545,6 +545,24 @@ class OpenScale(serial.Serial):
         else:
             return reading * 32.174049, 'lbf'  # returns lbf
 
+    @property
+    def configuration(self):
+        return {
+            'tare': self._tare_val,
+            'calibrate': self._cal_value,
+            'timestamp_enable': self._timestamp_enable,
+            'report_rate': self._report_rate,
+            'units': self._units,
+            'decimal_places': self._decimal_places,
+            'num_avgs': self._num_avgs,
+            'local_temp_enable': self._local_temp_enable,
+            'remote_temp_enable': self._remote_temp_enable,
+            'status_led': self._status_led,
+            'trigger_enable': self._serial_trigger_enable,
+            'raw_read_enable': self._raw_reading_enable,
+            'trigger_char': self._trigger_char,
+        }
+
     def save_config(self):
         data = {
             'tare': self._tare_val,

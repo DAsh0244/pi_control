@@ -86,7 +86,7 @@ class Config(Mapping, ReprMixIn):
         return self.__dict__[item]
 
 
-def load_config(path):
+def load_procedure(path):
     # from code import interact
     from pprint import pprint
     with open(path, 'r') as file:
@@ -151,6 +151,6 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # with open('../../test/test_config.yaml') as file:
-    config = load_config('../../test/test_config.yaml')
+    config = load_procedure('../../test/test_config.yaml')
     executor = ProcedureExecutor(config=config['CONFIG'], routines=config['ROUTINES'])
     executor.run()

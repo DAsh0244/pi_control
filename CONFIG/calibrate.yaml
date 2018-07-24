@@ -27,12 +27,22 @@ ACTIONS: &ACTIONS
       units: *UNITS_LEN
       low: *LIMIT_LOW
       high: *LIMIT_HIGH
+  CALIBRATE_POS: !Action &CAL_POS
+    name: CAL_POS
+  CALIBRATE_STRAIN: !Action &CAL_STR
+    name: CAL_STR
+  CALIBRATE_FORCE: !Action &CAL_FOR
+    name: CAL_FOR
+  CALIBRATE_TEMPERATURE: !Action &CAL_TEMP
+    name: CAL_TEMP
+
 # begin routine definitions
 ROUTINES: &ROUTINES
   - !Routine
     name: reset_min
     exec: False
-    units: *UNITS_LEN
+    len_units: *UNITS_LEN
+    force_units: *UNITS_FORCE
     actions:
       RESET_MIN: *RESET_MIN
       CLEANUP: *CLEANUP
@@ -51,7 +61,8 @@ ROUTINES: &ROUTINES
   - !Routine
     name: reset_max
     exec: False
-    units: *UNITS_LEN
+    len_units: *UNITS_LEN
+    force_units: *UNITS_FORCE
     output: stdout
     actions:
       RESET_MAX: *RESET_MAX
@@ -64,9 +75,47 @@ ROUTINES: &ROUTINES
       CLEANUP:
         '*': END
   - !Routine
+      name: calibrate
+      exec: true
+      len_units: *UNITS_LEN
+      force_units: *UNITS_FORCE
+      output: stdout
+      actions:
+        CALIBRATE_MENU: !Action &CAL_MENU
+          name: CAL_MENU
+        CALIBRATE_POS: *CAL_POS
+        CALIBRATE_STRAIN: *CAL_STR
+        CALIBRATE_FORCE: *CAL_FOR
+        CALIBRATE_TEMPERATURE: *CAL_TEMP
+        CLEANUP: *CLEANUP
+      transitions:
+        START:
+          '*': CAL_MENU
+        CAL_MENU:
+          position: CAL_POS
+          strain: CAL_STR
+          force: CAL_FOR
+          temperature: CAL_TEMP
+          menu: CAL_MENU
+          done: SAVE_CFG
+        CAL_POS:
+          done: CAL_MENU
+        CAL_TEMP:
+          done: CAL_MENU
+        CAL_STR:
+          done: CAL_MENU
+        CAL_FOR:
+          done: CAL_MENU
+        SAVE_CFG:
+          success: CLEANUP
+          fail: ERROR
+        CLEANUP:
+          '*': END
+  - !Routine
       name: reset_min_max
       exec: True
-      units: *UNITS_LEN
+      len_units: *UNITS_LEN
+      force_units: *UNITS_FORCE
       output: stdout
       actions:
         RESET_MAX: *RESET_MAX

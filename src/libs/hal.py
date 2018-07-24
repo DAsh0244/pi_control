@@ -1,9 +1,9 @@
 # hal.py
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Union
 from numbers import Real as _Real
+from sys import platform as _platform
 from collections import deque as _deque
-
 from libs.utils import (
     nop as _nop,
     sop as _sop,
@@ -99,7 +99,7 @@ GLOBAL_VCC = 3.3
 TIMEOUT = None
 UNITS = 'raw'
 OUTFILE = None
-LOAD_CELL_PORT = 'COM10'
+LOAD_CELL_PORT = 'COM10' if _platform == 'win32' else '/dev/ttyusb0'
 
 # pin mappings
 PINS = {
@@ -339,13 +339,15 @@ class Actuator:
         self.speed_controller.set_level(value)
 
     @staticmethod
-    def set_actuator_dir(direction: str) -> None:
+    def set_actuator_dir(direction: Union[str, None] = None) -> None:
         """
-        sets actuator direction as forward or backward
-        :type direction: str
+        sets actuator direction as forward or backward. If direction is not passed, the current direction is flipped.
+        :type direction: str or None
         :param direction: string describing direction. Either '(f)orward' or '(b)ackward'
         :return: None
         """
+        if direction is None:
+            GPIO.output(PINS['relay_1'], not GPIO.input(PINS['relay_1']))
         if direction in {'forward', 'f'}:
             GPIO.output(PINS['relay_1'], GPIO.HIGH)
         elif direction in {'backward', 'b'}:
@@ -359,16 +361,65 @@ class Actuator:
     def set_out_speed(self, speed) -> None:
         raise NotImplementedError('no information known for this')
 
+    # def set_pos(self, position: _Real) -> None:
+    #     """
+    #     sets actuator to provided position.
+    #     :param position: position value like those obtained from self.position
+    #     :return: None
+    #     """
+    #     # value = self.position_sensor.read_single()
+    #     value = self.position
+    #     # print(value)
+    #     if value == position:
+    #         print(f'target achieved\ndesired: {position}\nachieved: {value}\nerror: {position - value}')
+    #         return None
+    #     if value >= position:
+    #         self.set_actuator_dir('backward')
+    #     else:  # value < position
+    #         self.set_actuator_dir('forward')
+    #     self.speed_controller.set_level(self.speed_controller.default_val)
+    #     passed = False
+    #     while True:
+    #         # self.position_sensor.wait_for_sample()
+    #         # value = self.position_sensor.get_last_result()
+    #         # value = self.position_sensor.read_single()
+    #         value = self.position
+    #         print(self.speed_controller.value, value)
+    #         if (self.speed_controller.value == self.speed_controller.stop) or (value == position):
+    #             print('target achieved')
+    #             print('desired', position)
+    #             print('achieved', value)
+    #             print('error', position - value)
+    #             # self.position_sensor.stop_adc()
+    #             break
+    #         elif value >= position:  # too far, go back
+    #             self.set_actuator_dir('backward')
+    #             if passed:
+    #                 self.speed_controller.set_level(self.speed_controller.value >> 1)
+    #                 passed = False
+    #             else:
+    #                 print('passed high target')
+    #                 passed = True
+    #         else:  # not far enough, go forward
+    #             self.set_actuator_dir('forward')
+    #             if passed:
+    #                 self.speed_controller.set_level(self.speed_controller.value >> 1)
+    #                 passed = False
+    #             else:
+    #                 print('passed low target')
+    #                 passed = True
+
     def set_position(self, position: _Real) -> None:
         """
-        sets actuator to provided position.
-        :param position: position value like those obtained form self.position
+        sets actuator to provided position. if overshoot is detected, attempts to correct.
+        :param position: position value like those obtained from self.position
         :return: None
         """
         # value = self.position_sensor.read_single()
         value = self.position
         # print(value)
         if value == position:
+            print(f'target achieved\ndesired: {position}\nachieved: {value}\nerror: {position - value}')
             return None
         if value >= position:
             self.set_actuator_dir('backward')
@@ -382,12 +433,12 @@ class Actuator:
             # value = self.position_sensor.read_single()
             value = self.position
             print(self.speed_controller.value, value)
-            if self.speed_controller.value == self.speed_controller.stop:
+            if (self.speed_controller.value == self.speed_controller.stop) or (value == position):
                 print('target achieved')
                 print('desired', position)
                 print('achieved', value)
                 print('error', position - value)
-                self.position_sensor.stop_adc()
+                # self.position_sensor.stop_adc()
                 break
             elif value >= position:  # too far, go back
                 self.set_actuator_dir('backward')
@@ -406,11 +457,9 @@ class Actuator:
                     print('passed low target')
                     passed = True
 
-    def level2position(self, level: int, units: str = 'im') -> float:
+    def level2position(self, level: int, units: str = 'in') -> float:
         """
         converts a integer level to a position value
-        :type units: str
-        :type level: int
         :param level: integer level like one obtained form self.position
         :param units: str
         :return: float of newly converted units

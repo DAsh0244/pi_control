@@ -1,6 +1,3 @@
-#! /usr/bin/env python
-# vim:fileencoding=utf-8
-# -*- coding: utf-8 -*-
 """
 pi_control
 actions/__init__.py
@@ -12,7 +9,7 @@ Description:
 """
 # prototype action function signature:
 #
-# def some_action(interface: obj, params: dict) -> str:
+# def some_action(interface: object, params: dict) -> str:
 #     """
 #     Action description
 #
@@ -29,7 +26,7 @@ Description:
 import os
 from typing import Iterable as _Iterable
 from importlib import import_module as _import_module
-from libs.utils import yamlobj
+from libs.utils import yamlobj, ReprMixIn
 from enum import (
     Enum as _Enum,
     auto as _auto,
@@ -42,22 +39,21 @@ def _generate_statuses(conditions: _Iterable):
 
 
 def _generate_action_map():
-    return {module.upper(): getattr(_import_module('orchestration.actions.{0}'.format(module)), module)
+    return {module.upper(): getattr(_import_module(f'orchestration.actions.{module}'), module)
             for module, ext in map(os.path.splitext, os.listdir(os.path.join(os.curdir, 'actions')))
-            if not (module in {'readme', '__init__', '__pycache__'} or ext != '.py')}
+            if not ((ext != '.py') or (module in {'readme', '__init__', '__pycache__'}))}
 
 
 action_map = _generate_action_map()
 
 
 @yamlobj('!Action')
-class Action:
+class Action(ReprMixIn):
     """
     actions are defined as having:
         a base function to be called
         a set of params to pass to function
     """
-    # yaml_tag = '!Action'
     type = 'ACT'
 
     def __init__(self, name: str, params=None):
@@ -70,14 +66,17 @@ class Action:
 
 
 # predefined states
+# noinspection PyUnusedLocal
 def start_action(*args, **kwargs):
     return 'success'
 
 
+# noinspection PyUnusedLocal
 def end_action(*args, **kwargs):
     return None
 
 
+# noinspection PyUnusedLocal
 def error_action(*args, **kwargs):
     raise RuntimeError('An Error Occurred!')
 
@@ -87,7 +86,7 @@ action_map['ERROR'] = error_action
 action_map['START'] = start_action
 action_map['END'] = end_action
 
-# default Action
+# default Actions
 START_ACTION = Action(name='START', params=None)
 END_ACTION = Action(name='END', params=None)
 ERROR_ACTION = Action(name='ERROR', params=None)

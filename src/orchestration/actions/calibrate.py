@@ -162,15 +162,15 @@ def calibrate(interface, params):
                 test currently generated scheme
                 editing any single point generated
 
-        7 step process:
+        8 step process:
             1. define abs low (leave alone if limit switch)
             2. define abs high (leave alone if limit switch)
             3. define desired stroke low threshold
             4. define desired stroke high threshold
             5. define controller
             6. define desired actuator movement rates
-            6.5. test current setup -- tweak values as wanted
-            7. confirm cal data
+            7. test current setup -- tweak values as wanted
+            8. confirm cal data
         """
     # calibrate thresholds:
     calibrate_position(interface)

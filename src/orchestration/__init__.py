@@ -11,13 +11,11 @@ License: N/A
 Description: 
 """
 
-import yaml
-from orchestration.actions import action_map, Action
 from orchestration.routines import Routine
+from orchestration.actions import action_map, Action
+from orchestration.procedure import ProcedureExecutor, load_procedure
+
 
 if __name__ == '__main__':
     from pprint import pprint
-
     pprint(action_map)
-    with open('../../test/test_config.yaml') as file:
-        pprint(yaml.load(file))
