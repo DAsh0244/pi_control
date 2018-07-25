@@ -22,10 +22,11 @@ class Routine:
     # yaml_tag = '!Routine'
     type = 'RTN'
 
-    def __init__(self, name: str, units: str, actions: Dict[str, Union[None, Dict[str, Union[None, str, int, float]]]],
+    def __init__(self, name: str, len_units: str, force_units: str, actions: Dict[str, Union[None, Dict[str, Union[None, str, int, float]]]],
                  transitions=None, exec=True, output: str = 'stdout'):
         self.name = name
-        self.units = units
+        self.len_units = len_units
+        self.force_units = force_units
         self.exec = exec
         self.actions = actions
         self.actions['START'] = START_ACTION

@@ -274,6 +274,11 @@ class Actuator:
                          }  # key is force (lbs)
     distance_per_volt = stroke / pot_voltage
 
+    # todo: implement this
+    def mount_controller(self,cntontroller):
+       pass
+
+
     def __init__(self, position_sensor: A2D, speed_controller: D2A, force_sensor: LoadCell,
                  pos_limits: dict = None, units: str = 'raw', movement_controller=None):
         """
@@ -359,7 +364,8 @@ class Actuator:
     # todo: get data for speed vs voltage info
     # https://github.com/an-oreo/pi_control/issues/9
     def set_out_speed(self, speed) -> None:
-        raise NotImplementedError('no information known for this')
+        return 0
+        # raise NotImplementedError('no information known for this')
 
     # def set_pos(self, position: _Real) -> None:
     #     """
@@ -432,7 +438,7 @@ class Actuator:
             # value = self.position_sensor.get_last_result()
             # value = self.position_sensor.read_single()
             value = self.position
-            print(self.speed_controller.value, value)
+            # print(self.speed_controller.value, value)
             if (self.speed_controller.value == self.speed_controller.stop) or (value == position):
                 print('target achieved')
                 print('desired', position)
@@ -564,7 +570,11 @@ class StrainGauge:
 # instantiate HW
 adc = A2D(default_channel=1)
 dac = D2A()
-load_cell = LoadCell(port=LOAD_CELL_PORT)
+class load_cell:
+    def get_reading():
+        return (123,456,789)
+# load_cell = LoadCell(port=LOAD_CELL_PORT)
+# actuator = Actuator(position_sensor=adc, speed_controller=dac, force_sensor=load_cell)
 actuator = Actuator(position_sensor=adc, speed_controller=dac, force_sensor=load_cell)
 # todo: fix the soft/hard spi, configure naming ability.
 SPI_PORT = 0

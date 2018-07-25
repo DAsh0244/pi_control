@@ -16,5 +16,6 @@ from launch import parser
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    recipe = orchestration.load_procedure(args.path)
+    recipe = orchestration.load_procedure(args.config)
     executor = orchestration.ProcedureExecutor(config=recipe['CONFIG'], routines=recipe['ROUTINES'])
+    executor.run()

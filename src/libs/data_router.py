@@ -27,7 +27,7 @@ from version import version, prog_name
 # pub.subscribe(callback, topic)
 
 LOCK = Lock()
-DEFAULT_DATA_LOC: str = '../../DATA'
+DEFAULT_DATA_LOC: str = '../DATA'
 TOPICS: FrozenSet = frozenset({
     'actuator.position',
     'actuator.speed',
@@ -189,5 +189,5 @@ class DataLogger:
         topic = topic.getName()
         data['ts'] = perf_counter() - self.start  # datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         topic_meta = '.'.join(filter(None, (topic, data.pop('meta', ''))))
-        print('TOPIC META @@@@@@@@@@@@@@@@@@@@@@@@@@\n', topic_meta)
+        # print('TOPIC META @@@@@@@@@@@@@@@@@@@@@@@@@@\n', topic_meta)
         self.logs[topic_meta].write(self.unpack_map[topic](data))

@@ -9,7 +9,7 @@ Description:
 """
 
 import sys
-from libs.hal import actuator
+from libs.hal import actuator, hal_init
 from time import perf_counter
 
 
@@ -32,6 +32,7 @@ def oscillate(interface=actuator, params=None):
         - 'repeats_reset'    - broke on a timeout and reset actuator to closest boundary point
         - 'error'            - triggers on any failure during oscillations
     """
+    hal_init()
     condition = 'stopped'
     low_pos = params['low_pos']
     high_pos = params['high_pos']
@@ -40,16 +41,18 @@ def oscillate(interface=actuator, params=None):
     controller = params.get('controller', None)
     old_speed = interface.speed_controller.default_val
     speed = params.get('speed', interface.speed_controller.default_val)
-
+    
     interface.speed_controller.default_val = speed
     interface.mount_controller(controller)
     repeats = 0
     start = perf_counter()
     try:
         while ((perf_counter() - start) < timeout) or (repeats < repetitions):
+            print('start oscillation', (perf_counter() - start))
             interface.set_position(low_pos)
             interface.set_position(high_pos)
             repeats += 1
+            print('next oscillation')
         if params.get('reset_closest', False):
             condition = 'reset'
             # is closer to lower spot than higher spot
@@ -62,7 +65,7 @@ def oscillate(interface=actuator, params=None):
     except Exception as e:
         interface.set_out_speed(interface.speed_controller.stop)
         interface.speed_controller.default_val = old_speed
-        sys.stderr.write(e)
+        sys.stderr.write(str(e))
         sys.stderr.write('\n')
         sys.stderr.write(str(sys.exc_info()))
         sys.stderr.flush()

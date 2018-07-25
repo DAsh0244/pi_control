@@ -11,19 +11,19 @@ License: N/A
 Description: 
 """
 
-from libs.hal import LoadCell, load_cell
+from libs.hal import LoadCell  # , load_cell
 
 choices = 'tcurdn'
-
-prompt = f'current configuration is:\n' + \
-         '\n'.join(['{}:{}'.format(k, v) for k, v in load_cell.configuration.items()]) + \
-         '(t)are for taring\n' \
-         '(c)alibrate for calibrate\n' \
-         '(u)nits to swap units\n' \
-         '(r)eport_rate <num> for setting report rate\n' \
-         '(d)ecimal_places <num> for setting decimal places\n' \
-         '(n)um_averages <num> for setting the nnumber of averages to aggergate\n' \
-         'Enter choice: '
+load_cell = None
+prompt = f'current configuration is:\n' 
+         # '\n'.join(['{}:{}'.format(k, v) for k, v in load_cell.configuration.items()]) + \
+         #'(t)are for taring\n' \
+         #'(c)alibrate for calibrate\n' \
+         #'(u)nits to swap units\n' \
+         #'(r)eport_rate <num> for setting report rate\n' \
+         #'(d)ecimal_places <num> for setting decimal places\n' \
+         #'(n)um_averages <num> for setting the nnumber of averages to aggergate\n' \
+         #'Enter choice: '
 
 
 def calibrate_force(interface: LoadCell = load_cell, params: dict = None) -> str:
