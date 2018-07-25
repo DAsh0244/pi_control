@@ -1,0 +1,11 @@
+# pi_control,v0.2.0
+# log for:, actuator.force
+# date:, 2018_07_25_11_06_40
+# meta:, 
+# comment:,
+time (s), force (N), local_temp (C), timestamp (ms since loadcell powerup)
+0.012519335999968462,123,456,789
+0.1371727510004348,123,456,789
+0.257628659999682,123,456,789
+0.3775694129999465,123,456,789
+

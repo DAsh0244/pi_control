@@ -11,7 +11,9 @@ License: N/A
 Description: 
 """
 
+
 import sys
+import yaml
 from collections.abc import Mapping
 from typing import Iterable as _Iterable, Dict
 
@@ -127,6 +129,7 @@ class ProcedureExecutor:
         try:
             while current_action is not END_ACTION:
                 status = current_action.execute()
+                print(status, current_action.name, transitions)
                 # #todo: remove if not simulating
                 # from time import sleep
                 # from random import uniform
@@ -139,7 +142,8 @@ class ProcedureExecutor:
                 if '*' in transitions[current_action.name]:
                     status = '*'
                 current_action = routine.actions[transitions[current_action.name][status]]
-        except RuntimeError:  # error states trigger a runtime Error
+        except RuntimeError as e:  # error states trigger a runtime Error
+            print(e)
             print('ERROR during {} with {} (status of {})'.format(routine.name, current_action.name, status))
             hal_cleanup()
             sys.exit(1)

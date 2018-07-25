@@ -228,7 +228,7 @@ class _MCP4725(MCP4725):
         self.value = 0  # holds current value
         self.vcc = vcc
         self.step_size = vcc / self.levels
-        self.default_val = self.levels >> 2  # default is 1/4 speed
+        self.default_val = self.levels >> 1  # default is 1/2 speed
         super().__init__(*args, **kwargs)
 
     def set_level(self, level):
@@ -274,6 +274,11 @@ class Actuator:
                          }  # key is force (lbs)
     distance_per_volt = stroke / pot_voltage
 
+    # todo: implement this
+    def mount_controller(self,controller):
+       pass
+
+
     def __init__(self, position_sensor: A2D, speed_controller: D2A, force_sensor: LoadCell,
                  pos_limits: dict = None, units: str = 'raw', movement_controller=None):
         """
@@ -289,6 +294,7 @@ class Actuator:
             'in': lambda level: level * self.distance_per_level,
             'mm': lambda level: in2mm(level * self.distance_per_level),
         }
+        self.tolerance = 0.0001
         self.position_sensor = position_sensor
         self.speed_controller = speed_controller
         self.force_sensor = force_sensor
@@ -359,7 +365,8 @@ class Actuator:
     # todo: get data for speed vs voltage info
     # https://github.com/an-oreo/pi_control/issues/9
     def set_out_speed(self, speed) -> None:
-        raise NotImplementedError('no information known for this')
+        return 0
+        # raise NotImplementedError('no information known for this')
 
     # def set_pos(self, position: _Real) -> None:
     #     """
@@ -433,17 +440,17 @@ class Actuator:
             # value = self.position_sensor.read_single()
             value = self.position
             print(self.speed_controller.value, value)
-            if (self.speed_controller.value == self.speed_controller.stop) or (value == position):
+            if (self.speed_controller.value == self.speed_controller.stop) or abs(value - position) < (position * self.tolerance):
                 print('target achieved')
                 print('desired', position)
                 print('achieved', value)
                 print('error', position - value)
                 # self.position_sensor.stop_adc()
                 break
-            elif value >= position:  # too far, go back
+            elif value > position:  # too far, go back
                 self.set_actuator_dir('backward')
                 if passed:
-                    self.speed_controller.set_level(self.speed_controller.value >> 1)
+                    # self.speed_controller.set_level(self.speed_controller.value >> 1)
                     passed = False
                 else:
                     print('passed high target')
@@ -451,7 +458,7 @@ class Actuator:
             else:  # not far enough, go forward
                 self.set_actuator_dir('forward')
                 if passed:
-                    self.speed_controller.set_level(self.speed_controller.value >> 1)
+                    # self.speed_controller.set_level(self.speed_controller.value >> 1)
                     passed = False
                 else:
                     print('passed low target')
@@ -564,7 +571,14 @@ class StrainGauge:
 # instantiate HW
 adc = A2D(default_channel=1)
 dac = D2A()
-load_cell = LoadCell(port=LOAD_CELL_PORT)
+class load_cell:
+    def get_reading():
+        from time import sleep
+        from random import uniform
+        sleep(100e-3,700e-3)
+        return (123,456,789)
+# load_cell = LoadCell(port=LOAD_CELL_PORT)
+# actuator = Actuator(position_sensor=adc, speed_controller=dac, force_sensor=load_cell)
 actuator = Actuator(position_sensor=adc, speed_controller=dac, force_sensor=load_cell)
 # todo: fix the soft/hard spi, configure naming ability.
 SPI_PORT = 0

@@ -17,11 +17,12 @@ ACTIONS: &ACTIONS
     name: CLEANUP
   OSCILLATE: !Action &OSCILLATE
     name: OSCILLATE
-    len_units: *UNITS_LEN
-    force_units: *UNITS_FORCE
-    low_pos: *LIMIT_LOW
-    high_pos: *LIMIT_HIGH
-    timeout: 10
+    params:
+      len_units: *UNITS_LEN
+      force_units: *UNITS_FORCE
+      low_pos: *LIMIT_LOW
+      high_pos: *LIMIT_HIGH
+      timeout: 10
 # begin routine definitions
 ROUTINES: &ROUTINES
   - !Routine

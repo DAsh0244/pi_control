@@ -40,7 +40,7 @@ def _generate_statuses(conditions: _Iterable):
 
 def _generate_action_map():
     return {module.upper(): getattr(_import_module(f'orchestration.actions.{module}'), module)
-            for module, ext in map(os.path.splitext, os.listdir(os.path.join(os.curdir, 'actions')))
+            for module, ext in map(os.path.splitext, os.listdir(os.path.join('orchestration', 'actions')))
             if not ((ext != '.py') or (module in {'readme', '__init__', '__pycache__'}))}
 
 
