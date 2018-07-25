@@ -176,10 +176,10 @@ class DataLogger:
         """
         while True:
             LOCK.acquire()
-            print('\nGETTING FUNCTIONS\n')
-            print(PUBLISH_FUNCS)
+            # print('\nGETTING FUNCTIONS\n')
+            # print(PUBLISH_FUNCS)
             for func in PUBLISH_FUNCS:
-                print(func)
+                # print(func)
                 func()
             LOCK.release()
             sleep(period)
