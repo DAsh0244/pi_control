@@ -302,6 +302,7 @@ class Actuator:
         self.pos_limit_low = 5000
         self.pos_limit_high = 26000
         self.units = units
+        self.direction = 'forward'
         if pos_limits is not None:
             self.pos_limit_low = pos_limits.pop('low', self.pos_limit_low)
             self.pos_limit_high = pos_limits.pop('high', self.pos_limit_high)
@@ -344,8 +345,7 @@ class Actuator:
     def speed(self, value):
         self.speed_controller.set_level(value)
 
-    @staticmethod
-    def set_actuator_dir(direction: Union[str, None] = None) -> None:
+    def set_actuator_dir(self, direction: Union[str, None] = None) -> None:
         """
         sets actuator direction as forward or backward. If direction is not passed, the current direction is flipped.
         :type direction: str or None
@@ -354,10 +354,13 @@ class Actuator:
         """
         if direction is None:
             GPIO.output(PINS['relay_1'], not GPIO.input(PINS['relay_1']))
+            self.direction = 'forward' if self.direction != 'forward' else 'backward'
         if direction in {'forward', 'f'}:
             GPIO.output(PINS['relay_1'], GPIO.HIGH)
+            self.direction = 'forward'
         elif direction in {'backward', 'b'}:
             GPIO.output(PINS['relay_1'], GPIO.LOW)
+            self.direction = 'backward'
         else:
             raise ValueError('unknown direction {!r}'.format(direction))
 
@@ -365,56 +368,8 @@ class Actuator:
     # todo: get data for speed vs voltage info
     # https://github.com/an-oreo/pi_control/issues/9
     def set_out_speed(self, speed) -> None:
-        return 0
+        return None
         # raise NotImplementedError('no information known for this')
-
-    # def set_pos(self, position: _Real) -> None:
-    #     """
-    #     sets actuator to provided position.
-    #     :param position: position value like those obtained from self.position
-    #     :return: None
-    #     """
-    #     # value = self.position_sensor.read_single()
-    #     value = self.position
-    #     # print(value)
-    #     if value == position:
-    #         print(f'target achieved\ndesired: {position}\nachieved: {value}\nerror: {position - value}')
-    #         return None
-    #     if value >= position:
-    #         self.set_actuator_dir('backward')
-    #     else:  # value < position
-    #         self.set_actuator_dir('forward')
-    #     self.speed_controller.set_level(self.speed_controller.default_val)
-    #     passed = False
-    #     while True:
-    #         # self.position_sensor.wait_for_sample()
-    #         # value = self.position_sensor.get_last_result()
-    #         # value = self.position_sensor.read_single()
-    #         value = self.position
-    #         print(self.speed_controller.value, value)
-    #         if (self.speed_controller.value == self.speed_controller.stop) or (value == position):
-    #             print('target achieved')
-    #             print('desired', position)
-    #             print('achieved', value)
-    #             print('error', position - value)
-    #             # self.position_sensor.stop_adc()
-    #             break
-    #         elif value >= position:  # too far, go back
-    #             self.set_actuator_dir('backward')
-    #             if passed:
-    #                 self.speed_controller.set_level(self.speed_controller.value >> 1)
-    #                 passed = False
-    #             else:
-    #                 print('passed high target')
-    #                 passed = True
-    #         else:  # not far enough, go forward
-    #             self.set_actuator_dir('forward')
-    #             if passed:
-    #                 self.speed_controller.set_level(self.speed_controller.value >> 1)
-    #                 passed = False
-    #             else:
-    #                 print('passed low target')
-    #                 passed = True
 
     def set_position(self, position: _Real) -> None:
         """
@@ -440,25 +395,26 @@ class Actuator:
             # value = self.position_sensor.read_single()
             value = self.position
             print(self.speed_controller.value, value)
-            if (self.speed_controller.value == self.speed_controller.stop) or abs(value - position) < (position * self.tolerance):
+            if (self.speed_controller.value == self.speed_controller.stop) \
+                    or abs(value - position) < (position * self.tolerance):
                 print('target achieved')
                 print('desired', position)
                 print('achieved', value)
                 print('error', position - value)
                 # self.position_sensor.stop_adc()
                 break
-            elif value > position:  # too far, go back
+            elif value > position and self.direction != 'backward':  # too far, go back
                 self.set_actuator_dir('backward')
                 if passed:
-                    # self.speed_controller.set_level(self.speed_controller.value >> 1)
+                    self.speed_controller.set_level(self.speed_controller.value >> 1)
                     passed = False
                 else:
                     print('passed high target')
                     passed = True
-            else:  # not far enough, go forward
+            elif value < position and self.direction != 'forward':  # not far enough, go forward
                 self.set_actuator_dir('forward')
                 if passed:
-                    # self.speed_controller.set_level(self.speed_controller.value >> 1)
+                    self.speed_controller.set_level(self.speed_controller.value >> 1)
                     passed = False
                 else:
                     print('passed low target')
@@ -571,12 +527,15 @@ class StrainGauge:
 # instantiate HW
 adc = A2D(default_channel=1)
 dac = D2A()
+
+
 class load_cell:
+    @staticmethod
     def get_reading():
         from time import sleep
         from random import uniform
-        sleep(100e-3,700e-3)
-        return (123,456,789)
+        sleep(uniform(100e-3, 700e-3))
+        return 123, 456, 789
 # load_cell = LoadCell(port=LOAD_CELL_PORT)
 # actuator = Actuator(position_sensor=adc, speed_controller=dac, force_sensor=load_cell)
 actuator = Actuator(position_sensor=adc, speed_controller=dac, force_sensor=load_cell)

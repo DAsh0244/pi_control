@@ -3,8 +3,8 @@ CONFIG: !Config &CONFIG
   version: 0.0.1
   len_units: &UNITS_LEN raw
   force_units: &UNITS_FORCE N
-  lower_limit: &LIMIT_LOW 9900
-  upper_limit: &LIMIT_HIGH 10100
+  lower_limit: &LIMIT_LOW 5000
+  upper_limit: &LIMIT_HIGH 15000
   pos_adc_sample_rate: 128
   pos_adc_gain: 1
   pos_adc_channel: 1
