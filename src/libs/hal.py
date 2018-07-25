@@ -405,20 +405,8 @@ class Actuator:
                 break
             elif value > position and self.direction != 'backward':  # too far, go back
                 self.set_actuator_dir('backward')
-                if passed:
-                    self.speed_controller.set_level(self.speed_controller.value >> 1)
-                    passed = False
-                else:
-                    print('passed high target')
-                    passed = True
             elif value < position and self.direction != 'forward':  # not far enough, go forward
                 self.set_actuator_dir('forward')
-                if passed:
-                    self.speed_controller.set_level(self.speed_controller.value >> 1)
-                    passed = False
-                else:
-                    print('passed low target')
-                    passed = True
 
     def level2position(self, level: int, units: str = 'in') -> float:
         """
