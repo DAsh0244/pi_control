@@ -377,10 +377,13 @@ class Actuator:
         :param position: position value like those obtained from self.position
         :return: None
         """
+        eps = position * self.tolerance
         # value = self.position_sensor.read_single()
-        value = self.position
+        positions = _deque(maxlen=2)
+        positions.append(self.position)
+        value = sum(positions) // positions.maxlen
         # print(value)
-        if value == position:
+        if abs(value - position) < eps:
             print(f'target achieved\ndesired: {position}\nachieved: {value}\nerror: {position - value}')
             return None
         if value >= position:
@@ -393,16 +396,17 @@ class Actuator:
             # self.position_sensor.wait_for_sample()
             # value = self.position_sensor.get_last_result()
             # value = self.position_sensor.read_single()
-            value = self.position
+            positions.append(self.position)
+            value = sum(positions) // positions.maxlen
             print(self.speed_controller.value, value)
             if (self.speed_controller.value == self.speed_controller.stop) \
-                    or abs(value - position) < (position * self.tolerance):
+                    or abs(value - position) < eps:
                 print('target achieved')
                 print('desired', position)
                 print('achieved', value)
                 print('error', position - value)
                 # self.position_sensor.stop_adc()
-                break
+                return
             elif value > position and self.direction != 'backward':  # too far, go back
                 self.set_actuator_dir('backward')
             elif value < position and self.direction != 'forward':  # not far enough, go forward
