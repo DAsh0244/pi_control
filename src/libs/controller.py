@@ -18,16 +18,16 @@
 #     ctrl.process()
 #
 
-from typing import Callable
 from time import perf_counter
 from abc import ABC, abstractmethod
+from typing import Callable, Iterable, Union
 
 
 class ControllerBase(ABC):
-    coefficients = ()
+    coefficients = ''
 
-    def __init__(self, input_func: Callable[[], float], output_func: Callable[[float], None],
-                 desired_reference: float = 0.0):
+    def __init__(self, input_func: Callable[[], Union[Iterable, float]],
+                 output_func: Callable[[Union[float, int]], None], desired_reference: float = 0.0):
         """
         :param input_func: function that is used to query the system, and get the new set of inputs.
                            Input mappings should be applied here

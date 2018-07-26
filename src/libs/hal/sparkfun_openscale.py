@@ -521,11 +521,8 @@ class OpenScale(serial.Serial):
             0b11111: lambda x: [int(x[0]), float(x[1]), x[2], int(x[3]), float(x[4]), float(x[5])],
         }
 
-        key = (self._timestamp_enable << 4) | \
-              0b01000 | \
-              (self._raw_reading_enable << 2) | \
-              (self._local_temp_enable << 1) | \
-              self._remote_temp_enable
+        key = (self._timestamp_enable << 4) | 0b01000 | (self._raw_reading_enable << 2) | \
+              (self._local_temp_enable << 1) | self._remote_temp_enable
         self.triggered_read()
         res = self.read_until(b'\r\n').decode('utf-8').split(',')
         res = [item for sublist in (r.split() for r in res) for item in sublist]

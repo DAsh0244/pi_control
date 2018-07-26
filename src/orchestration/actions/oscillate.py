@@ -17,6 +17,7 @@ def oscillate(interface=actuator, params=None):
     """
     Moves from thresholds described in params dict with keys of 'low_pos', 'high_pos'.
     Movement speed is optionally defined in params dict with the 'speed' key.
+    Frequency can be optionally defined in Hz with the 'freq' key. It will overwrite any value taken from the speed key.
     Adaptive controller is optionally specified with the 'controller' key.
     The ability to end oscillation at the closest threshold (low or high) is available with the 'reset_closest' key,
         which expects a boolean True or False value. If not specified, defaults to False
@@ -41,18 +42,21 @@ def oscillate(interface=actuator, params=None):
     controller = params.get('controller', None)
     old_speed = interface.speed_controller.default_val
     speed = params.get('speed', interface.speed_controller.default_val)
-    
+    if params.get('freq', None) is not None:
+        # calculate new speed for desired frequency
+        pass
     interface.speed_controller.default_val = speed
     interface.mount_controller(controller)
     repeats = 0
     start = perf_counter()
     try:
-        while ((perf_counter() - start) < timeout) or (repeats < repetitions):
+        while (repeats < repetitions) and ((perf_counter() - start) < timeout):
             print('start oscillation', (perf_counter() - start))
             interface.set_position(low_pos)
             interface.set_position(high_pos)
             repeats += 1
             print('next oscillation')
+            print(repeats, repetitions)
         if params.get('reset_closest', False):
             condition = 'reset'
             # is closer to lower spot than higher spot

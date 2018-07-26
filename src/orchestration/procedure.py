@@ -11,11 +11,10 @@ License: N/A
 Description: 
 """
 
-
-import sys
 import yaml
-from collections.abc import Mapping
-from typing import Iterable as _Iterable, Dict
+from sys import exit as _exit
+from collections.abc import Mapping as _Mapping
+from typing import Iterable as _Iterable, Dict as _Dict
 
 from libs.data_router import DataLogger
 from libs.utils import yamlobj, ReprMixIn
@@ -25,7 +24,7 @@ from orchestration.actions import END_ACTION, ERROR_ACTION
 
 
 @yamlobj('!Config')
-class Config(Mapping, ReprMixIn):
+class Config(_Mapping, ReprMixIn):
     type = 'CFG'
     accepted_units = {'raw', 'in', 'mm', 'N', 'lbf'}  # raw: A/D levels, imperial: in, lbf, metric: m, N
     accepted_adc_sample_rates = A2D.accepted_sample_rates
@@ -104,9 +103,9 @@ class ProcedureExecutor:
 
     routines = []
 
-    def __init__(self, config: Dict, routines: _Iterable[Routine]):
+    def __init__(self, cfg: _Dict, routines: _Iterable[Routine]):
         self.routines.extend(routines)
-        self.logger = DataLogger(config=config)
+        self.logger = DataLogger(config=cfg)
 
     def run(self):
         import time
@@ -129,7 +128,7 @@ class ProcedureExecutor:
         try:
             while current_action is not END_ACTION:
                 status = current_action.execute()
-                print(status, current_action.name, transitions)
+                # print(status, current_action.name, transitions)
                 # #todo: remove if not simulating
                 # from time import sleep
                 # from random import uniform
@@ -146,15 +145,14 @@ class ProcedureExecutor:
             print(e)
             print('ERROR during {} with {} (status of {})'.format(routine.name, current_action.name, status))
             hal_cleanup()
-            sys.exit(1)
+            _exit(1)
 
 
 if __name__ == '__main__':
     # config = load_config('../../test/test_config.yaml')
-    import yaml
     from pprint import pprint
 
     # with open('../../test/test_config.yaml') as file:
     config = load_procedure('../../test/test_config.yaml')
-    executor = ProcedureExecutor(config=config['CONFIG'], routines=config['ROUTINES'])
+    executor = ProcedureExecutor(cfg=config['CONFIG'], routines=config['ROUTINES'])
     executor.run()

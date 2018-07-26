@@ -42,7 +42,7 @@ ADC_MAP = {2/3 : 6.144,
                      16 : 0.256,
                     }
 ADC_GAIN = 1
-ADC_MAX_VOLTAGE = ADC_PGA_MAP[ADC_GAIN]
+ADC_MAX_VOLTAGE = ADC_MAP[ADC_GAIN]
 ADC_STEP_SIZE = 2 * ADC_MAX_VOLTAGE / (2**16)  # volt/step
 ADC_MAX_LEVEL = 2**16 / 2 - 1  # hits ADC_MAX_VOLTAGE
 

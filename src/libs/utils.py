@@ -1,12 +1,10 @@
-# util.py
-# utility misc functions
+# utils.py
 
 import numpy as _np
 import yaml as _yaml
 
 import warnings as _warnings
 from numbers import Real as _Real
-# from datetime import datetime as _dt
 from functools import wraps as _wraps
 from random import randint as _randint
 from inspect import signature as _signature
@@ -15,21 +13,84 @@ from typing import Tuple, Dict, Union, Iterable
 TS_PATTERN = "%Y_%m_%d_%H_%M_%S"
 
 
+# noinspection PyUnusedLocal
 def nop(*args, **kwargs):
     """function that matches any prototype and proceeds to do nothing"""
     pass
 
 
+# noinspection PyUnusedLocal
 def sop(*args, **kwargs):
     """function that matches any prototype and just returns a random int"""
     return _randint(0, 2 ** 15 - 1)
 
 
+# noinspection PyUnusedLocal
 def warning_on_one_line(message, category, filename, lineno, file=None, line=None):
     return '%s:%s: %s: %s\n\n' % (filename, lineno, category.__name__, message)
 
 
 _warnings.formatwarning = warning_on_one_line
+
+try:
+    import RPi.GPIO as GPIO
+    import Adafruit_GPIO.SPI as SPI
+except ImportError:
+    from time import sleep as _sleep
+
+    _warnings.warn('failed to load RPi.GPIO, using stub class for syntax checking', RuntimeWarning)
+    _warnings.warn('failed to load Adafruit_GPIO, using stub class for syntax checking', RuntimeWarning)
+
+
+    # noinspection PyUnusedLocal,PyPep8Naming,SpellCheckingInspection
+    class GPIO:
+        """quick stub class for GPIO"""
+        BCM = BOARD = IN = OUT = RISING = FALLING = BOTH = PUD_UP = PUD_DOWN = None
+        setmode = setup = input = cleanup = add_event_detect = remove_event_detect = nop
+        HIGH = 1
+        LOW = 0
+
+        @staticmethod
+        def output(channel, level):
+            return _randint(0, 1)
+
+        @staticmethod
+        def wait_for_edge(channel, edge, timeout):
+            _sleep(timeout // 1000)
+
+
+    # noinspection PyUnusedLocal,PyPep8Naming, SpellCheckingInspection
+    class Adafruit_GPIO:
+        """quick stub class for GPIO"""
+        BCM = BOARD = IN = OUT = RISING = FALLING = BOTH = PUD_UP = PUD_DOWN = None
+        setmode = setup = input = cleanup = add_event_detect = remove_event_detect = nop
+        HIGH = 1
+        LOW = 0
+
+        @staticmethod
+        def output(channel, level):
+            return _randint(0, 1)
+
+        get_platform_gpio = nop
+
+        @staticmethod
+        def wait_for_edge(channel, edge, timeout):
+            _sleep(timeout // 1000)
+
+        # provides hardware abstraction layer for easier access to hardware functions
+
+
+    # noinspection PyUnusedLocal,PyPep8Naming, SpellCheckingInspection
+    class SPI:
+        MSBFIRST = 0
+
+        class BitBang:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            set_clock_hz = set_mode = set_bit_order = transfer = nop
+
+        SpiDev = BitBang
 
 
 # human readable conversion functions
@@ -71,14 +132,6 @@ def lbf2N(lbf):
     return 4.448222 * lbf
 
 
-# log file handling
-def cleanup_log(logfile):
-    """
-    base cleanup function that provides basic file cleanup for formatting things like timesteps
-    """
-    raise NotImplementedError()
-
-
 def load_config(cfg_path):
     with open(cfg_path, 'r') as cfg_file:
         config = _yaml.load(cfg_file)
@@ -89,6 +142,7 @@ def load_config(cfg_path):
     # pprint(globals())
 
 
+# noinspection PyUnusedLocal
 def save_config(cfg_path):
     pass
     # with open(cfg_path, 'w') as cfg_file:
@@ -105,6 +159,7 @@ def save_config(cfg_path):
     #                        )
 
 
+# noinspection PyUnusedLocal
 def edit_config(cfg_path):
     pass
 

@@ -20,7 +20,7 @@ if __name__ == '__main__':
     recipe = orchestration.load_procedure(args.config)
     actuator.pos_limit_low = recipe['CONFIG']['lower_limit']
     actuator.pos_limit_high = recipe['CONFIG']['upper_limit']
-    executor = orchestration.ProcedureExecutor(config=recipe['CONFIG'], routines=recipe['ROUTINES'])
+    executor = orchestration.ProcedureExecutor(cfg=recipe['CONFIG'], routines=recipe['ROUTINES'])
     try:
         executor.run()
     except KeyboardInterrupt:

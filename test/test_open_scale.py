@@ -13,7 +13,7 @@ Description:
 from unittest import TestCase
 from random import randrange, choice, uniform
 
-from libs.sparkfun_openscale import OpenScale
+from libs.hal.sparkfun_openscale import OpenScale
 
 
 class TestOpenScale(TestCase):
