@@ -56,7 +56,6 @@ def oscillate(interface=actuator, params=None):
             interface.set_position(high_pos)
             repeats += 1
             print('next oscillation')
-            print(repeats, repetitions)
         if params.get('reset_closest', False):
             condition = 'reset'
             # is closer to lower spot than higher spot
