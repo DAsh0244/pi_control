@@ -50,7 +50,6 @@ While these states are always present, and therefore never need to be explicitly
 
 In addition to the above actions. The following Actions will be necessary to use:
 - `Cleanup`  -- cleans up pin setups and other resources
-- `ConfigPipe` -- configures Data Logging and forwarding
 
 ### Transitions:
 
