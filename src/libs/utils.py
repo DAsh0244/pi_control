@@ -10,7 +10,8 @@ from random import randint as _randint
 from inspect import signature as _signature
 from typing import Tuple, Dict, Union, Iterable
 
-TS_PATTERN = "%Y_%m_%d_%H_%M_%S"
+# TS_PATTERN = "%Y_%m_%d_%H_%M_%S"
+INF = float('inf')
 
 
 # noinspection PyUnusedLocal
@@ -40,7 +41,6 @@ except ImportError:
 
     _warnings.warn('failed to load RPi.GPIO, using stub class for syntax checking', RuntimeWarning)
     _warnings.warn('failed to load Adafruit_GPIO, using stub class for syntax checking', RuntimeWarning)
-
 
     # noinspection PyUnusedLocal,PyPep8Naming,SpellCheckingInspection
     class GPIO:

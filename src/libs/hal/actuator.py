@@ -21,7 +21,7 @@ from libs.hal.constants import GLOBAL_VCC, PINS
 from libs.hal.adc import ADS1115Interface as A2D
 # noinspection PyPep8Naming
 from libs.hal.dac import MCP4725Interface as D2A
-from libs.data_router import add_to_periodic_poll, publish
+from libs.data_router import add_to_poll, publish
 from libs.hal.sparkfun_openscale import OpenScale as LoadCell
 
 
@@ -70,9 +70,9 @@ class Actuator:
             self.pos_limit_high = pos_limits.pop('high', self.pos_limit_high)
         if movement_controller is not None:
             self.movement_controller = movement_controller
-        add_to_periodic_poll(self._get_pos)
-        add_to_periodic_poll(self._get_speed)
-        add_to_periodic_poll(self._get_load)
+        add_to_poll(self._get_pos)
+        add_to_poll(self._get_speed)
+        add_to_poll(self._get_load)
 
     def _get_pos(self):
         return self.position

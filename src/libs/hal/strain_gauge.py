@@ -12,7 +12,7 @@ Description:
 """
 import numpy as np
 
-from libs.data_router import add_to_periodic_poll, publish
+from libs.data_router import add_to_poll, publish
 from libs.hal.adc import ADS1115Interface as A2D
 
 if __name__ == '__main__':
@@ -26,7 +26,7 @@ class StrainGauge:
         self.gf = gf
         self.r_nom = r_nom
         self.cal_map = np.array([[], []])
-        add_to_periodic_poll(self.read_strain)
+        add_to_poll(self.read_strain)
 
     @publish('strain', ('strain',))
     def read_strain(self):

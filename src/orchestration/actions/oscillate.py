@@ -9,6 +9,7 @@ Description:
 """
 
 import sys
+from libs.utils import INF
 from libs.hal import actuator, hal_init
 from time import perf_counter
 
@@ -37,8 +38,8 @@ def oscillate(interface=actuator, params=None):
     condition = 'stopped'
     low_pos = params['low_pos']
     high_pos = params['high_pos']
-    timeout = params.get('timeout', float('inf'))
-    repetitions = params.get('repetitions', float('inf'))
+    timeout = params.get('timeout', INF)
+    repetitions = params.get('repetitions', INF)
     controller = params.get('controller', None)
     old_speed = interface.speed_controller.default_val
     speed = params.get('speed', interface.speed_controller.default_val)

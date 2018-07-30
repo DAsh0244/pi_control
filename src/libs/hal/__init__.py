@@ -50,6 +50,8 @@ t3 = Thermocouple(name='sample', tc_type='T', num_avgs=4, software_spi={'clk': 1
 # todo: fix configurability of strain gauge
 s1 = StrainGauge(interface=adc)
 
+Thermocouple.read_temp = lambda *args: 2.34567
+Thermocouple.read_internal_temp = lambda *args: 1.23456
 
 # todo fix this so it works right
 # load_cell = LoadCell(port=LOAD_CELL_PORT)

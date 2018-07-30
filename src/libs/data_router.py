@@ -13,12 +13,13 @@ Description: constructs for forwarding and logging various data values
 
 import os
 # import os.path as osp
-from threading import Thread, Lock
+# from threading import Thread, Lock
+from multiprocessing import Process, Lock, Queue
 from datetime import datetime
 from time import perf_counter, sleep
 from functools import wraps as _wraps
 from inspect import signature as _signature
-from typing import Dict, TextIO, Callable, FrozenSet, Iterable, Tuple
+from typing import Dict, TextIO, Callable, FrozenSet, Iterable, Tuple, Union
 
 from pubsub import pub
 
@@ -45,7 +46,6 @@ COLUMNS: Dict[str, str] = {
     'strain': 'time (s), strain (%)\n',
 }
 
-
 # def publish(topic):
 #     if topic not in TOPICS:
 #         raise ValueError(f'Unrecognized topic {topic}.\n'
@@ -63,7 +63,7 @@ COLUMNS: Dict[str, str] = {
 PUBLISH_FUNCS = []
 
 
-def add_to_periodic_poll(method):
+def add_to_poll(method):
     PUBLISH_FUNCS.append(method)
 
 
@@ -89,6 +89,7 @@ def publish(topic: str, keys: Tuple[str, ...]):
         else:
             raise ValueError('Keys mismatch to function returns annotation')
         return wrapper
+
     return real_decorator
 
 
@@ -118,6 +119,29 @@ def register_listeners(call_back, topics: Iterable):
         pub.subscribe(call_back, topic)
 
 
+data_queue = Queue()
+
+
+class DataWriter:
+    def __init__(self, outfiles: Union[Dict, None] = None, q: Queue = data_queue):
+        self.outfiles = outfiles
+        self.q = q
+        # self.log()
+
+    def log(self):
+        while True:
+            record = self.q.get()
+            self.outfiles[record[0]].write(record[2])
+
+    def __del__(self):
+        for file in self.outfiles.values():
+            file.write('\n')
+            file.close()
+
+
+record_keeper = DataWriter(outfiles=None)
+
+
 class DataLogger:
     log_header: str = f'# {prog_name},v{version}\n' \
                       '# log for:, {topic}\n' \
@@ -134,8 +158,8 @@ class DataLogger:
 
     def __init__(self, config: Dict, outdir: str = None):
         self.topic_map: Dict[str, str] = {}
-        self.logs: Dict[str, TextIO] = {}
-        self.period = getattr(config, 'period', 0.1)
+        logs: Dict[str, TextIO] = {}
+        self.period = getattr(config, 'period', 0.01)
         if outdir is None:
             outdir = f'{DEFAULT_DATA_LOC}/{prog_name}_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}'
             os.makedirs(outdir, exist_ok=True)
@@ -146,27 +170,35 @@ class DataLogger:
                     ts = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
                     topic_file = f'{outdir}/{topic_meta}_{ts}.csv'
                     self.topic_map[topic_meta] = topic_file
-                    self.logs[topic_meta] = open(topic_file, 'w')
-                    self.logs[topic_meta].write(
-                        self.log_header.format(topic=topic, ts=ts, meta=meta) + COLUMNS[topic].format(**config))
+                    logs[topic_meta] = open(topic_file, 'w')
+                    data_queue.put((topic_meta,
+                                    self.log_header.format(topic=topic, ts=ts, meta=meta) + COLUMNS[topic].format(
+                                        **config)))
+                    # self.logs[topic_meta].write(
+                    #     self.log_header.format(topic=topic, ts=ts, meta=meta) + COLUMNS[topic].format(**config))
 
             else:
                 ts = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
                 topic_file = f'{outdir}/{topic}_{ts}.csv'
                 self.topic_map[topic] = topic_file
-                self.logs[topic] = open(topic_file, 'w')
-                self.logs[topic].write(
-                    self.log_header.format(topic=topic, ts=ts, meta='') + COLUMNS[topic].format(**config))
-        register_listeners(self.record_data, TOPICS)
-        self.timerThread = Thread(target=self.get_data, args=(self.period,))
+                logs[topic] = open(topic_file, 'w')
+                data_queue.put(
+                    (topic, self.log_header.format(topic=topic, ts=ts, meta='') + COLUMNS[topic].format(**config))
+                )
+                # logs[topic].write(
+                #     self.log_header.format(topic=topic, ts=ts, meta='') + COLUMNS[topic].format(**config))
+        record_keeper.outfiles = logs
+        register_listeners(record_keeper.log, TOPICS)
+        self.timerThread = Process(target=self.get_data, args=(self.period,))
+        # self.timerThread = Thread(target=self.get_data, args=(self.period,))
         self.timerThread.daemon = True
         self.timerThread.start()
         self.start = perf_counter()
 
-    def __del__(self):
-        for file in self.logs.values():
-            file.write('\n')
-            file.close()
+    # def __del__(self):
+    #     for file in self.logs.values():
+    #         file.write('\n')
+    #         file.close()
 
     @staticmethod
     def get_data(period):
@@ -175,13 +207,13 @@ class DataLogger:
         :return:
         """
         while True:
-            LOCK.acquire()
-            # print('\nGETTING FUNCTIONS\n')
+            # LOCK.acquire()
+            print('\nGETTING FUNCTIONS\n')
             # print(PUBLISH_FUNCS)
             for func in PUBLISH_FUNCS:
                 # print(func)
                 func()
-            LOCK.release()
+            # LOCK.release()
             sleep(period)
 
     def record_data(self, data, topic=pub.AUTO_TOPIC):
@@ -190,4 +222,5 @@ class DataLogger:
         data['ts'] = perf_counter() - self.start  # datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         topic_meta = '.'.join(filter(None, (topic, data.pop('meta', ''))))
         # print('TOPIC META @@@@@@@@@@@@@@@@@@@@@@@@@@\n', topic_meta)
-        self.logs[topic_meta].write(self.unpack_map[topic](data))
+        data_queue.put((topic_meta, self.unpack_map[topic](data)))
+        # self.logs[topic_meta].write(self.unpack_map[topic](data))

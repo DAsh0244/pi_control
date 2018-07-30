@@ -26,6 +26,7 @@ ACTIONS: &ACTIONS
       repetitions: 10
       timeout: 3
       speed: 2048
+      reset_closest: True
 # begin routine definitions
 ROUTINES: &ROUTINES
   - !Routine

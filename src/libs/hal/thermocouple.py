@@ -12,7 +12,7 @@ Description:
 """
 from typing import Tuple
 from libs.hal.max31856 import MAX31856
-from libs.data_router import add_to_periodic_poll, publish
+from libs.data_router import add_to_poll, publish
 
 
 class Thermocouple(MAX31856):
@@ -22,7 +22,7 @@ class Thermocouple(MAX31856):
         self._tc_type_str = tc_type
         self._avg_samples = num_avgs
         self.name = name
-        add_to_periodic_poll(self.get_temps)
+        add_to_poll(self.get_temps)
 
     def read_temp(self):
         return super().read_temp_c()
