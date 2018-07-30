@@ -73,8 +73,8 @@ Planned supported operators are described below:
 |:---------:|:-------:|:-----------------:|
 |   `NOT`   |  `not`  | **not** supported         |
 |   `AND`   |  `and`  | **not** supported |
-|   `OR`    |  `OR`   | **not** supported |
-|   `XOR`   |  `XOR`  | **not** supported |
+|   `OR`    |  `or`   | **not** supported |
+|   `XOR`   |  `xor`  | **not** supported |
 
 
 ## Implementation details:
