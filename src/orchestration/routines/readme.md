@@ -63,8 +63,8 @@ Transitions are defined as follows:
 To enforce a unconditional transition, use the wild card operator `*`. This will act as a unconditional transition and proceed regardless **except** for `error` conditions.
 To skip past `error` conditions, transitions **must** be implemented explicitly.
 
-**NOT IMPLEMENTED YET**
-### Compound Conditions: **EXPERIMENTAL**
+
+### Compound Conditions: **NOT IMPLEMENTED YET**
 The Usual boolean operators can be applied to transition conditions.
 For example, conditions can be negated in transitions with the `not` keyword.
 Planned supported operators are described below:
