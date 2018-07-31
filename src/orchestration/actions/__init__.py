@@ -15,7 +15,7 @@ Description:
 #
 #     :param interface: base interface abstraction layer that is performing an action.
 #     :param params: dictionary of the form
-#     	{'param0':<val>, 'param1':<val>, ..., 'paramN':<val>}
+#         {'param0':<val>, 'param1':<val>, ..., 'paramN':<val>}
 #     """
 #     condition = None
 #     # stuff happens here -- eval and assign the desired value for condition

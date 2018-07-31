@@ -25,6 +25,27 @@ class OpenScale(serial.Serial):
                  115200, 230400, 460800, 500000, 576000, 921600, 1000000)
     # prompt for initial opening of config menu:
     #
+    # Serial Load Cell Converter version 1.0
+    # By SparkFun Electronics
+    # No remote sensor found
+    # System Configuration
+    # 1) Tare scale to zero [8647409]
+    # 2) Calibrate scale [262]
+    # 3) Timestamp [On]
+    # 4) Set report rate [953]
+    # 5) Set baud rate [9600 bps]
+    # 6) Change units of measure [kg]
+    # 7) Decimals [4]
+    # 8) Average amount [10]
+    # 9) Local temp [On]
+    # r) Remote temp [On]
+    # s) Status LED [Off]
+    # t) Serial trigger [On]
+    # q) Raw reading [Off]
+    # c) Trigger character: [48]
+    # x) Exit
+    # >
+
     # b'1) Tare scale to zero [\d+]\r\n'\
     # b'2) Calibrate scale[\d+]\r\n'\
     # b'3) Timestamp [On|Off]\r\n'\
@@ -100,17 +121,11 @@ class OpenScale(serial.Serial):
             'raw_reading': b'q',  # no eol, toggles between enabled/disabled
             'trigger_char': b'c',  # no eol, next char entered is the new trigger char
         }
-        self.load_config_from_device()
+        # self.load_config_from_device()
 
     def load_config_from_device(self):
         if not self.is_open:
             self.open()
-            # keep separate to help timings
-        self.reset_output_buffer()
-        self.write(self.cmds['open_menu'])
-        self.flush()
-        self.reset_input_buffer()
-
         res = self.parse_menu_response()
         # noinspection SpellCheckingInspection
         self.baudrate = res['baud']
@@ -131,15 +146,50 @@ class OpenScale(serial.Serial):
         self.write(self.cmds['close_menu'])
 
     def parse_menu_response(self):
+        """
+        [
+        '',
+        'Serial Load Cell Converter version 1.0',
+        'By SparkFun Electronics',
+        'No remote sensor found',
+        'System Configuration',
+        '1) Tare scale to zero [8647409]',
+        '2) Calibrate scale [262]',
+        '3) Timestamp [On]',
+        '4) Set report rate [953]',
+        '5) Set baud rate [9600 bps]',
+        '6) Change units of measure [kg]',
+        '7) Decimals [4]',
+        '8) Average amount [10]',
+        '9) Local temp [On]',
+        'r) Remote temp [On]',
+        's) Status LED [Off]',
+        't) Serial trigger [On]',
+        'q) Raw reading [Off]',
+        'c) Trigger character: [48]',
+        'x) Exit',
+        '>'
+        ]
+        """
+
         if not self.is_open:
             self.open()
-            # keep separate to help timings
-        self.reset_output_buffer()
-        self.write(self.cmds['open_menu'])
-        self.flush()
+        #     keep separate to help timings
+        #
+        # self.reset_output_buffer()
         self.reset_input_buffer()
+        self.flush()
+        self.write(self.cmds['open_menu'])  # wakes up device
+        self.write(self.cmds['open_menu'])
+        # from time import sleep; sleep(0.2)
+        # self.flush()
+        print('write query')
+        # from time import sleep; sleep(0.5)
+        # print(self.readline())
+        # self.write(self.cmds['open_menu'])
+        raw_res = self.read_until(b'>').decode('utf-8').split('\r\n')[5:-2]
 
-        raw_res = self.read_until(b'>').decode("utf-8").split('\r\n')
+        print(raw_res)
         res = {
             'tare': None,
             'calibrate': None,
@@ -440,7 +490,7 @@ class OpenScale(serial.Serial):
         self.reset_output_buffer()
         self.write(self.cmds['open_menu'])
         self.flush()
-        self.reset_input_buffer()
+        # self.reset_input_buffer()
 
         # b'\n\rTare point 1: [\d+]\r\n'\
         # b'\n\rTare point 2: [\d+]\r\n'

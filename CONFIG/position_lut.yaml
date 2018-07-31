@@ -1,0 +1,41 @@
+# global configuration parameters
+CONFIG: !Config &CONFIG
+  version: 0.0.1
+  len_units: &UNITS_LEN raw
+  force_units: &UNITS_FORCE N
+  lower_limit: &LIMIT_LOW 5000
+  upper_limit: &LIMIT_HIGH 15000
+  pos_adc_sample_rate: 128
+  pos_adc_gain: 1
+  pos_adc_channel: 1
+  strain_adc_sample_rate: 128
+  strain_adc_gain: 4
+  strain_adc_channel: 3
+# define any actions that you want to reuse multiple times in multiple routines
+ACTIONS: &ACTIONS
+  CLEANUP: !Action &CLEANUP
+    name: CLEANUP
+  OSCILLATE: !Action &POSITION_LUT
+    name: POSITION_LUT
+    params:
+      positions: [1000, 2000, 1500, 3000, 1500]
+      units: *UNITS_LEN
+      # takes whatever comes first
+      cycles: 2
+# begin routine definitions
+ROUTINES: &ROUTINES
+- !Routine
+  name: position_lut
+  len_units: *UNITS_LEN
+  force_units: *UNITS_FORCE
+  actions:
+    POSITION_LUT: *POSITION_LUT
+    CLEANUP: *CLEANUP
+  transitions:
+    START:
+      '*': POSITION_LUT
+    POSITION_LUT:
+      'done': CLEANUP
+      'error': ERROR
+    CLEANUP:
+      '*': END
