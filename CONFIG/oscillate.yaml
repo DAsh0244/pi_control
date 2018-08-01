@@ -1,6 +1,7 @@
 # global configuration parameters
-CONFIG: !Config &CONFIG
+CONFIG: !Config
   version: 0.0.1
+  period: 0.0001
   len_units: &UNITS_LEN raw
   force_units: &UNITS_FORCE N
   lower_limit: &LIMIT_LOW 5000
@@ -12,7 +13,7 @@ CONFIG: !Config &CONFIG
   strain_adc_gain: 4
   strain_adc_channel: 3
 # define any actions that you want to reuse multiple times in multiple routines
-ACTIONS: &ACTIONS
+ACTIONS:
   CLEANUP: !Action &CLEANUP
     name: CLEANUP
   OSCILLATE: !Action &OSCILLATE
@@ -28,7 +29,7 @@ ACTIONS: &ACTIONS
       speed: 2048
       reset_closest: True
 # begin routine definitions
-ROUTINES: &ROUTINES
+ROUTINES:
   - !Routine
     name: oscillate
     len_units: *UNITS_LEN

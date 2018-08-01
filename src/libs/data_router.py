@@ -13,13 +13,15 @@ Description: constructs for forwarding and logging various data values
 
 import os
 # import os.path as osp
-# from threading import Thread, Lock
-from multiprocessing import Process, Lock, Queue
+# from threading import Thread # , Lock
+# noinspection PyUnresolvedReferences
+from multiprocess import Process, Lock  # , Queue
+# from multiprocessing import Lock, Queue, Process
 from datetime import datetime
 from time import perf_counter, sleep
 from functools import wraps as _wraps
 from inspect import signature as _signature
-from typing import Dict, TextIO, Callable, FrozenSet, Iterable, Tuple, Union
+from typing import Dict, TextIO, Callable, FrozenSet, Iterable, Tuple  # , Union
 
 from pubsub import pub
 
@@ -77,35 +79,17 @@ def publish(topic: str, keys: Tuple[str, ...]):
         if len(keys) == 1:
             @_wraps(func)
             def wrapper(*args, **kwargs):
-                data = func(*args, **kwargs)
-                pub.sendMessage(topic, data={keys[0]: data})
-                return data
+                datum = func(*args, **kwargs)
+                pub.sendMessage(topic, data={keys[0]: datum})
+                return datum
         elif len(str(fun_ret)[12:].split(',')) == len(keys):
             @_wraps(func)
             def wrapper(*args, **kwargs):
-                data = func(*args, **kwargs)
-                pub.sendMessage(topic, data={k: v for k, v in zip(keys, data)})
-                return data
+                datum = func(*args, **kwargs)
+                pub.sendMessage(topic, data={k: v for k, v in zip(keys, datum)})
+                return datum
         else:
-            raise ValueError('Keys mismatch to function returns annotation')
-        return wrapper
-
-    return real_decorator
-
-
-def __listen(topics: Iterable):
-    if any(topic not in TOPICS for topic in topics):
-        bad_topics: Tuple[str] = tuple(topic for topic in topics if topic not in TOPICS)
-        raise ValueError(f'Unrecognized topic(s) {bad_topics}.\n')
-
-    def real_decorator(func):
-        for topic in topics:
-            pub.subscribe(func, topic)
-
-        @_wraps(func)
-        def wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
-
+            raise ValueError('Keys mismatch to function return annotation')
         return wrapper
 
     return real_decorator
@@ -119,28 +103,30 @@ def register_listeners(call_back, topics: Iterable):
         pub.subscribe(call_back, topic)
 
 
-data_queue = Queue()
+# data_queue = Queue()
 
 
-class DataWriter:
-    def __init__(self, outfiles: Union[Dict, None] = None, q: Queue = data_queue):
-        self.outfiles = outfiles
-        self.q = q
-        # self.log()
-
-    def log(self):
-        while True:
-            record = self.q.get()
-            self.outfiles[record[0]].write(record[2])
-
-    def __del__(self):
-        for file in self.outfiles.values():
-            file.write('\n')
-            file.close()
-
-
-record_keeper = DataWriter(outfiles=None)
-
+# class DataWriter:
+#     def __init__(self, outfiles: Union[Dict, None] = None):
+#         self.outfiles = outfiles
+#         # self.log()
+#
+#     def log(self, q: Queue):
+#         while True:
+#             record = q.get()
+#             print(record[0], record[1])
+#             self.outfiles[record[0]].write(record[1])
+#
+#     def __del__(self):
+#         for file in self.outfiles.values():
+#             file.write('\n')
+#             file.close()
+#
+#
+# record_keeper = DataWriter(outfiles=None)
+# writer = Process(target=record_keeper.log, args=(data_queue,))
+# writer.daemon = True
+#
 
 class DataLogger:
     log_header: str = f'# {prog_name},v{version}\n' \
@@ -157,9 +143,10 @@ class DataLogger:
     }
 
     def __init__(self, config: Dict, outdir: str = None):
+        self.start = perf_counter()
         self.topic_map: Dict[str, str] = {}
-        logs: Dict[str, TextIO] = {}
-        self.period = getattr(config, 'period', 0.01)
+        self.logs: Dict[str, TextIO] = {}
+        self.period = getattr(config, 'period', 0)
         if outdir is None:
             outdir = f'{DEFAULT_DATA_LOC}/{prog_name}_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}'
             os.makedirs(outdir, exist_ok=True)
@@ -170,35 +157,39 @@ class DataLogger:
                     ts = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
                     topic_file = f'{outdir}/{topic_meta}_{ts}.csv'
                     self.topic_map[topic_meta] = topic_file
-                    logs[topic_meta] = open(topic_file, 'w')
-                    data_queue.put((topic_meta,
-                                    self.log_header.format(topic=topic, ts=ts, meta=meta) + COLUMNS[topic].format(
-                                        **config)))
-                    # self.logs[topic_meta].write(
-                    #     self.log_header.format(topic=topic, ts=ts, meta=meta) + COLUMNS[topic].format(**config))
+                    self.logs[topic_meta] = open(topic_file, 'w')
+                    # data_queue.put((topic_meta,
+                    #                 self.log_header.format(topic=topic, ts=ts, meta=meta) + COLUMNS[topic].format(
+                    #                     **config)))
+                    self.logs[topic_meta].write(
+                        self.log_header.format(topic=topic, ts=ts, meta=meta) + COLUMNS[topic].format(**config))
 
             else:
                 ts = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
                 topic_file = f'{outdir}/{topic}_{ts}.csv'
                 self.topic_map[topic] = topic_file
-                logs[topic] = open(topic_file, 'w')
-                data_queue.put(
-                    (topic, self.log_header.format(topic=topic, ts=ts, meta='') + COLUMNS[topic].format(**config))
-                )
-                # logs[topic].write(
-                #     self.log_header.format(topic=topic, ts=ts, meta='') + COLUMNS[topic].format(**config))
-        record_keeper.outfiles = logs
-        register_listeners(record_keeper.log, TOPICS)
+                self.logs[topic] = open(topic_file, 'w')
+                # data_queue.put(
+                #     (topic, self.log_header.format(topic=topic, ts=ts, meta='') + COLUMNS[topic].format(**config))
+                # )
+                self.logs[topic].write(
+                    self.log_header.format(topic=topic, ts=ts, meta='') + COLUMNS[topic].format(**config))
+        # record_keeper.outfiles = self.logs
+        register_listeners(self.record_data, TOPICS)
         self.timerThread = Process(target=self.get_data, args=(self.period,))
         # self.timerThread = Thread(target=self.get_data, args=(self.period,))
         self.timerThread.daemon = True
         self.timerThread.start()
         self.start = perf_counter()
 
-    # def __del__(self):
-    #     for file in self.logs.values():
-    #         file.write('\n')
-    #         file.close()
+    def __del__(self):
+        # self.timerThread.join()
+        # while True:
+        #     if data_queue.empty():
+        #         break
+        for file in self.logs.values():
+            file.write('\n')
+            file.close()
 
     @staticmethod
     def get_data(period):
@@ -206,21 +197,25 @@ class DataLogger:
         force trigger publisher functions periodically to get data.
         :return:
         """
+        time = perf_counter()
         while True:
-            # LOCK.acquire()
+            LOCK.acquire()
             print('\nGETTING FUNCTIONS\n')
+            print(perf_counter() - time)
+            time = perf_counter()
             # print(PUBLISH_FUNCS)
             for func in PUBLISH_FUNCS:
                 # print(func)
                 func()
-            # LOCK.release()
+            LOCK.release()
             sleep(period)
 
     def record_data(self, data, topic=pub.AUTO_TOPIC):
         # def record_data(self, data: Dict[str, Any], topic: str = pub.AUTO_TOPIC):
         topic = topic.getName()
         data['ts'] = perf_counter() - self.start  # datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        # print(topic, data)
         topic_meta = '.'.join(filter(None, (topic, data.pop('meta', ''))))
         # print('TOPIC META @@@@@@@@@@@@@@@@@@@@@@@@@@\n', topic_meta)
-        data_queue.put((topic_meta, self.unpack_map[topic](data)))
-        # self.logs[topic_meta].write(self.unpack_map[topic](data))
+        # data_queue.put((topic_meta, self.unpack_map[topic](data)))
+        self.logs[topic_meta].write(self.unpack_map[topic](data))

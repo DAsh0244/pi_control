@@ -56,7 +56,7 @@ class Actuator:
             'in': lambda level: level * self.distance_per_level,
             'mm': lambda level: in2mm(level * self.distance_per_level),
         }
-        self.tolerance = 0.0001
+        self.tolerance = 0.001
         self.position_sensor = position_sensor
         self.speed_controller = speed_controller
         self.force_sensor = force_sensor

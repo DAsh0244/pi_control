@@ -8,15 +8,16 @@ Author: Danyal Ahsanullah
 Date: 6/26/2018
 Copyright (c):  2018 Danyal Ahsanullah
 License: N/A
-Description: 
+Description:
 """
 
+import time
 import yaml
 from sys import exit as _exit
 from collections.abc import Mapping as _Mapping
 from typing import Iterable as _Iterable, Dict as _Dict
 
-from libs.data_router import DataLogger
+from libs.data_router import DataLogger  # , writer
 from libs.utils import yamlobj, ReprMixIn
 from libs.hal import hal_cleanup, A2D, actuator
 from orchestration.routines import Routine
@@ -108,11 +109,13 @@ class ProcedureExecutor:
         self.logger = DataLogger(config=cfg)
 
     def run(self):
-        import time
+
         start = time.time()
+        # writer.start()
         for routine in self.routines:
             print('executing routine: {}'.format(routine.name))
             self.execute_routine(routine)
+        # writer.join()
         print(time.time() - start)
 
     @staticmethod
