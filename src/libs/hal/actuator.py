@@ -145,14 +145,17 @@ class Actuator:
         :param speed: speed value to be used for movement. If not supplied, will use speed_controller default speed.
         :return: None
         """
+        flag = False
         if speed is None:
             speed = self.speed_controller.default_val
         eps = position * self.tolerance
         # value = self.position_sensor.read_single()
         positions = _deque(maxlen=self.kernel_size)
         # fill in the queue for values
-        for i in range(positions.maxlen):
-            positions.append(self.position)
+        while len(positions) < self.kernel_size:
+            pos = self.position
+            if pos > self.pos_limit_low:
+                positions.append(pos)
         value = sum(positions) / len(positions)
         # print(value)
         if abs(value - position) < eps:
@@ -164,7 +167,12 @@ class Actuator:
             self.set_actuator_dir('forward')
         self.speed_controller.set_level(speed)
         while True:
-            positions.append(self.position)
+            while not flag:
+                pos = self.position
+                if pos > self.pos_limit_low:
+                    positions.append(pos)
+                    flag = True
+            flag = False
             value = sum(positions) / positions.maxlen
             # print(self.speed_controller.value, value)
             if (self.speed_controller.value == self.speed_controller.stop) \
