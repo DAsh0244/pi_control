@@ -27,14 +27,14 @@ ACTIONS: &ACTIONS
       units: *UNITS_LEN
       low: *LIMIT_LOW
       high: *LIMIT_HIGH
-  CALIBRATE_POS: !Action &CAL_POS
-    name: CAL_POS
+  CALIBRATE_POSITION: !Action &CALIBRATE_POSITION
+    name: CALIBRATE_POSITION
   CALIBRATE_STRAIN: !Action &CAL_STR
-    name: CAL_STR
+    name: CALIBRATE_STRAIN
   CALIBRATE_FORCE: !Action &CAL_FOR
-    name: CAL_FOR
-  CALIBRATE_TEMPERATURE: !Action &CAL_TEMP
-    name: CAL_TEMP
+    name: CALIBRATE_FORCE
+  # CALIBRATE_TEMPERATURE: !Action &CAL_TEMP
+    # name: CALIBRATE_TEMPERATURE
 
 # begin routine definitions
 ROUTINES: &ROUTINES
@@ -82,30 +82,30 @@ ROUTINES: &ROUTINES
       output: stdout
       actions:
         CALIBRATE_MENU: !Action &CAL_MENU
-          name: CAL_MENU
-        CALIBRATE_POS: *CAL_POS
+          name: CALIBRATE_MENU
+        CALIBRATE_POSITION: *CALIBRATE_POSITION
         CALIBRATE_STRAIN: *CAL_STR
         CALIBRATE_FORCE: *CAL_FOR
-        CALIBRATE_TEMPERATURE: *CAL_TEMP
+        # CALIBRATE_TEMPERATURE: *CAL_TEMP
         CLEANUP: *CLEANUP
       transitions:
         START:
-          '*': CAL_MENU
-        CAL_MENU:
-          position: CAL_POS
-          strain: CAL_STR
-          force: CAL_FOR
-          temperature: CAL_TEMP
-          menu: CAL_MENU
+          '*': CALIBRATE_MENU
+        CALIBRATE_MENU:
+          position: CALIBRATE_POSITION
+          strain: CALIBRATE_STRAIN
+          force: CALIBRATE_FORCE
+          temperature: CALIBRATE_TEMPERATURE
+          menu: CALIBRATE_MENU
           done: SAVE_CFG
-        CAL_POS:
-          done: CAL_MENU
-        CAL_TEMP:
-          done: CAL_MENU
-        CAL_STR:
-          done: CAL_MENU
-        CAL_FOR:
-          done: CAL_MENU
+        CALIBRATE_POSITION:
+          done: CALIBRATE_MENU
+        # CALIBRATE_TEMP:
+          done: CALIBRATE_MENU
+        CALIBRATE_STRAIN:
+          done: CALIBRATE_MENU
+        CALIBRATE_FORCE:
+          done: CALIBRATE_MENU
         SAVE_CFG:
           success: CLEANUP
           fail: ERROR

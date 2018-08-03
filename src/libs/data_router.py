@@ -13,7 +13,8 @@ Description: constructs for forwarding and logging various data values
 
 import os
 # import os.path as osp
-from threading import Thread, Lock, Timer
+from threading import Thread, Timer
+from libs.hal.constants import LOCK
 # noinspection PyUnresolvedReferences
 # from multiprocess import Process, Lock  # , Queue
 # from multiprocessing import Lock, Queue, Process
@@ -29,7 +30,7 @@ from version import version, prog_name
 
 # pub.subscribe(callback, topic)
 
-LOCK = Lock()
+
 DEFAULT_DATA_LOC: str = '../DATA'
 TOPICS: FrozenSet = frozenset({
     'actuator.position',
@@ -137,7 +138,7 @@ def query_sensors(period):
     time = perf_counter()
     while True:
         LOCK.acquire()
-        print('\nGETTING FUNCTIONS\n')
+        # print('\nGETTING FUNCTIONS\n')
         # print(perf_counter() - time)
         # time = perf_counter()
         # print(PUBLISH_FUNCS)
@@ -194,7 +195,7 @@ class DataLogger:
         self.start = perf_counter()
         self.topic_map: Dict[str, str] = {}
         self.logs: Dict[str, TextIO] = {}
-        self.period = getattr(config, 'period', 0.01)
+        self.period = getattr(config, 'period', 0.1)
         if outdir is None:
             outdir = f'{DEFAULT_DATA_LOC}/{prog_name}_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}'
             os.makedirs(outdir, exist_ok=True)

@@ -16,7 +16,7 @@ from collections import deque as _deque
 
 from libs.utils import GPIO
 from libs.utils import in2mm
-from libs.hal.constants import GLOBAL_VCC, PINS
+from libs.hal.constants import GLOBAL_VCC, PINS, LOCK
 # noinspection PyPep8Naming
 from libs.hal.adc import ADS1115Interface as A2D
 # noinspection PyPep8Naming
@@ -39,7 +39,7 @@ class Actuator:
     distance_per_volt = stroke / pot_voltage
 
     # size for inbuilt moving average filter
-    kernel_size = 2
+    kernel_size = 5
 
     def __init__(self, position_sensor: A2D, speed_controller: D2A, force_sensor: LoadCell,
                  pos_limits: dict = None, units: str = 'raw', movement_controller=None):
@@ -56,7 +56,7 @@ class Actuator:
             'in': lambda level: level * self.distance_per_level,
             'mm': lambda level: in2mm(level * self.distance_per_level),
         }
-        self.tolerance = 0.0001
+        self.tolerance = 5
         self.position_sensor = position_sensor
         self.speed_controller = speed_controller
         self.force_sensor = force_sensor
@@ -94,7 +94,12 @@ class Actuator:
         gets position as the units value
         :return: position in appropriate units
         """
-        return self.convert_units[self.units](self.position_sensor.read_single())
+        # LOCK.acquire()
+        pos = self.position_sensor.read_single()
+        while pos < 0:
+            pos = self.position_sensor.read_single()
+        return self.convert_units[self.units](pos)
+        # LOCK.release()
 
     @property
     @publish('actuator.force', ('force', 'local_temp', 'timestamp'))
@@ -148,18 +153,19 @@ class Actuator:
         flag = False
         if speed is None:
             speed = self.speed_controller.default_val
-        eps = position * self.tolerance
+        eps = self.tolerance
         # value = self.position_sensor.read_single()
         positions = _deque(maxlen=self.kernel_size)
         # fill in the queue for values
         while len(positions) < self.kernel_size:
             pos = self.position
-            if pos > self.pos_limit_low:
+            if pos > 100:
                 positions.append(pos)
         value = sum(positions) / len(positions)
         # print(value)
         if abs(value - position) < eps:
-            print(f'target achieved\ndesired: {position}\nachieved: {value}\nerror: {position - value}')
+            self.speed_controller.set_level(0)
+            # print(f'target achieved\ndesired: {position}\nachieved: {value}\nerror: {position - value}')
             return None
         if value >= position:
             self.set_actuator_dir('backward')
@@ -169,20 +175,27 @@ class Actuator:
         while True:
             while not flag:
                 pos = self.position
-                if pos > self.pos_limit_low:
+                # print(pos)
+                if pos > 100:
                     positions.append(pos)
                     flag = True
             flag = False
+            # pos = self.position
+            # positions.append(pos)
             value = sum(positions) / positions.maxlen
             # print(self.speed_controller.value, value)
-            if (self.speed_controller.value == self.speed_controller.stop) \
-                    or abs(value - position) < eps:
-                print(f'target achieved\ndesired: {position}\nachieved: {value}\nerror: {position - value}')
+            if abs(value - position) < eps:
+                self.speed_controller.set_level(0)
+                # print(f'target achieved\ndesired: {position}\nachieved: {value}\nerror: {position - value}')
                 # self.position_sensor.stop_adc()
                 return None
             elif value > position and self.direction != 'backward':  # too far, go back
+                print(value)
+                print('back')
                 self.set_actuator_dir('backward')
             elif value < position and self.direction != 'forward':  # not far enough, go forward
+                print(value)
+                print('forward')
                 self.set_actuator_dir('forward')
 
     def level2position(self, level: int, units: str = 'in') -> float:

@@ -19,6 +19,7 @@ from libs.hal.adc import ADS1115Interface as A2D
 from libs.hal.dac import MCP4725Interface as D2A
 from libs.hal.sparkfun_openscale import OpenScale as LoadCell
 
+LOAD_CELL_PORT='/dev/ttyUSB0'
 
 def hal_init():
     # choose BCM or BOARD
@@ -50,23 +51,23 @@ t3 = Thermocouple(name='sample', tc_type='T', num_avgs=4, software_spi={'clk': 1
 # todo: fix configurability of strain gauge
 s1 = StrainGauge(interface=adc)
 
-Thermocouple.read_temp = lambda *args: 2.34567
-Thermocouple.read_internal_temp = lambda *args: 1.23456
+# Thermocouple.read_temp = lambda *args: 2.34567
+# Thermocouple.read_internal_temp = lambda *args: 1.23456
 
 # todo fix this so it works right
-# load_cell = LoadCell(port=LOAD_CELL_PORT)
+load_cell = LoadCell(port=LOAD_CELL_PORT)
 
 
 # noinspection PyMissingConstructor,PyPep8Naming
-class load_cell(LoadCell):
-    def __init__(self):
-        pass
+# class load_cell(LoadCell):
+#    def __init__(self):
+#        pass
+#
+#    def get_reading(self, **kwargs):
+#        from time import sleep
+#        from random import uniform
+#        sleep(uniform(100e-3, 700e-3))
+#        return 123, 456, 789
 
-    def get_reading(self, **kwargs):
-        from time import sleep
-        from random import uniform
-        sleep(uniform(100e-3, 700e-3))
-        return 123, 456, 789
 
-
-actuator = Actuator(position_sensor=adc, speed_controller=dac, force_sensor=load_cell())
+actuator = Actuator(position_sensor=adc, speed_controller=dac, force_sensor=load_cell)

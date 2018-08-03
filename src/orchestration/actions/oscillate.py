@@ -52,7 +52,8 @@ def oscillate(interface=actuator, params=None):
     start = perf_counter()
     try:
         while (repeats < repetitions) and ((perf_counter() - start) < timeout):
-            print('start oscillation', (perf_counter() - start))
+            # todo: option to initialize to a minimum force / strain 
+            print('start oscillation', repeats, (perf_counter() - start))
             interface.set_position(low_pos)
             interface.set_position(high_pos)
             repeats += 1

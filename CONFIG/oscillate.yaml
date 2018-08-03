@@ -3,8 +3,8 @@ CONFIG: !Config &CONFIG
   version: 0.0.1
   len_units: &UNITS_LEN raw
   force_units: &UNITS_FORCE N
-  lower_limit: &LIMIT_LOW 5000
-  upper_limit: &LIMIT_HIGH 15000
+  lower_limit: &LIMIT_LOW 4514
+  upper_limit: &LIMIT_HIGH 4600
   pos_adc_sample_rate: 128
   pos_adc_gain: 1
   pos_adc_channel: 1
@@ -23,9 +23,9 @@ ACTIONS: &ACTIONS
       low_pos: *LIMIT_LOW
       high_pos: *LIMIT_HIGH
       # takes whatever comes first
-      repetitions: 10
-      timeout: 3
-      speed: 2048
+      repetitions: 50
+      # timeout: 3
+      speed: 1024
       reset_closest: True
 # begin routine definitions
 ROUTINES: &ROUTINES

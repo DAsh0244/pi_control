@@ -2,6 +2,9 @@
 # vim:fileencoding=utf-8
 # -*- coding: utf-8 -*-
 """
+calibration and taring
+python3.6 -m serial.tools.miniterm /dev/ttyUSB0
+
 pi_control
 sparkfun_openscale.py
 Author: Danyal Ahsanullah
@@ -80,10 +83,13 @@ class OpenScale(serial.Serial):
         ('trigger_char', 23),
     )
 
-    def __init__(self, tare: int = 0, cal_value: int = 0, timestamp_enable: bool = True, report_rate: int = 200,
-                 units: str = 'kg', decimal_places: int = 4, num_avgs: int = 4, local_temp_enable: bool = False,
+
+    first_read = True
+
+    def __init__(self, tare: int = 18304, cal_value: int = 0, timestamp_enable: bool = True, report_rate: int = 200,
+                 units: str = 'kg', decimal_places: int = 4, num_avgs: int = 2, local_temp_enable: bool = False,
                  remote_temp_enable: bool = False, status_led: bool = True, serial_trigger_enable: bool = True,
-                 raw_reading_enable: bool = True, trigger_char: bytes = b'0', *args, **kwargs):
+                 raw_reading_enable: bool = False, trigger_char: bytes = b'0', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._tare_val: int = tare
         self._tare_val_1: int = 0
@@ -121,6 +127,8 @@ class OpenScale(serial.Serial):
             'raw_reading': b'q',  # no eol, toggles between enabled/disabled
             'trigger_char': b'c',  # no eol, next char entered is the new trigger char
         }
+        self.write(b'x')
+        # self.read_until(b'>')
         # self.load_config_from_device()
 
     def load_config_from_device(self):
@@ -220,7 +228,10 @@ class OpenScale(serial.Serial):
         return res
 
     def triggered_read(self):
+        self.reset_input_buffer()
         self.write(self.trigger_char)
+        self.reset_input_buffer()
+        
 
     @property
     def timestamp_enable(self):
@@ -541,8 +552,9 @@ class OpenScale(serial.Serial):
         }
         self.write(self.cmds['close_menu'])
         return res
+    
 
-    def get_reading(self, to_force=True):
+    def get_reading(self, to_force=False):
         # order is (if enabled) : comma separation, no whitespace:
         # timestamp -- toggleable -- int
         # calibrated_reading -- always printed -- float
@@ -573,7 +585,14 @@ class OpenScale(serial.Serial):
 
         key = (self._timestamp_enable << 4) | 0b01000 | (self._raw_reading_enable << 2) | \
               (self._local_temp_enable << 1) | self._remote_temp_enable
-        self.triggered_read()
+        if self.first_read:
+            self.triggered_read()
+            res = self.read_until(b'\r\n')
+            while not res.endswith(b'Readings:'):
+                res += self.read(1)
+            self.readline()
+            self.first_read = False
+        self.write(b'0')
         res = self.read_until(b'\r\n').decode('utf-8').split(',')
         res = [item for sublist in (r.split() for r in res) for item in sublist]
         data = ret_map[key](res)

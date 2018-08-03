@@ -35,7 +35,7 @@ def calibrate_menu(interface: object = None, params: dict = None) -> str:
     :param params: dictionary of the form {'param0':<val>, 'param1':<val>, ..., 'paramN':<val>}
     """
     condition = None
-    choice = input(prompt)
+    choice = input(prompt).strip()
     while choice not in ret_vals.keys():
-        choice = input(prompt)
-    return ret_vals[condition]
+        choice = input(prompt).strip()
+    return ret_vals[choice]

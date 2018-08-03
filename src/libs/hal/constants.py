@@ -1,4 +1,8 @@
 from sys import platform as _platform
+from threading import Lock
+
+LOCK = Lock()
+
 
 GLOBAL_VCC = 3.3
 TIMEOUT = None
