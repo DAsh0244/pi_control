@@ -31,8 +31,10 @@ class StrainGauge:
     @publish('strain', ('strain',))
     def read_strain(self):
         raw = self.interface.read_adc_difference(3, gain=4, data_rate=860)
-        voltage = self.interface.level2voltage(raw) + (self.vcc / 2)
-        strain = (1 / voltage - 1) / self.gf
+        strain = raw
+        # voltage = self.interface.level2voltage(raw) # + (self.vcc / 2)
+        # strain = .8 / (2*((1+voltage) - (.4*voltage-1))) * (1+ (1/350))
+        #strain = (1 / voltage - 1) / self.gf
         return strain
 
     @publish('strain', ('strain',))

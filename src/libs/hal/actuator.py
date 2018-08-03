@@ -96,7 +96,7 @@ class Actuator:
         """
         # LOCK.acquire()
         pos = self.position_sensor.read_single()
-        while pos < 0:
+        while pos < 1000:
             pos = self.position_sensor.read_single()
         return self.convert_units[self.units](pos)
         # LOCK.release()
