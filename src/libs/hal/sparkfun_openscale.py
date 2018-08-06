@@ -552,9 +552,8 @@ class OpenScale(serial.Serial):
         }
         self.write(self.cmds['close_menu'])
         return res
-    
 
-    def get_reading(self, to_force=False):
+    def get_reading(self, to_force=True):
         # order is (if enabled) : comma separation, no whitespace:
         # timestamp -- toggleable -- int
         # calibrated_reading -- always printed -- float
@@ -592,7 +591,7 @@ class OpenScale(serial.Serial):
                 res += self.read(1)
             self.readline()
             self.first_read = False
-        self.write(b'0')
+        self.write(self.cmds['trigger_char'])
         res = self.read_until(b'\r\n').decode('utf-8').split(',')
         res = [item for sublist in (r.split() for r in res) for item in sublist]
         data = ret_map[key](res)

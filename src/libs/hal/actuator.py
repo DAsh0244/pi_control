@@ -16,7 +16,7 @@ from collections import deque as _deque
 
 from libs.utils import GPIO
 from libs.utils import in2mm
-from libs.hal.constants import GLOBAL_VCC, PINS, LOCK
+from libs.hal.constants import GLOBAL_VCC, PINS
 # noinspection PyPep8Naming
 from libs.hal.adc import ADS1115Interface as A2D
 # noinspection PyPep8Naming
@@ -194,6 +194,46 @@ class Actuator:
                 print('back')
                 self.set_actuator_dir('backward')
             elif value < position and self.direction != 'forward':  # not far enough, go forward
+                print(value)
+                print('forward')
+                self.set_actuator_dir('forward')
+
+    def set_load(self, target_load: Union[int, float], speed: Union[float, int, None] = None) -> _Real:
+        """
+        sets actuator to provided position. if overshoot is detected, attempts to correct.
+        :param target_load: position value like those obtained from self.position
+        :param speed: speed value to be used for movement. If not supplied, will use speed_controller default speed.
+        :return: None
+        """
+        flag = False
+        if speed is None:
+            speed = self.speed_controller.default_val
+        eps = self.tolerance
+        # value = self.position_sensor.read_single()
+        # fill in the queue for values
+        value = self.load[0]
+        # print(value)
+        if abs(value - target_load) < eps:
+            self.speed_controller.set_level(0)
+            # print(f'target achieved\ndesired: {target_load}\nachieved: {value}\nerror: {target_load - value}')
+            return self.position
+        if value >= target_load:
+            self.set_actuator_dir('forward')  # reduce tension
+        else:  # value < target_load increase tension
+            self.set_actuator_dir('backward')
+        self.speed_controller.set_level(speed)
+        while True:
+            value = self.load[0]
+            # print(self.speed_controller.value, value)
+            if abs(value - target_load) < eps:
+                self.speed_controller.set_level(0)
+                # print(f'target achieved\ndesired: {target_load}\nachieved: {value}\nerror: {target_load - value}')
+                return self.position
+            elif value > target_load and self.direction != 'backward':  # too far, go back
+                print(value)
+                print('back')
+                self.set_actuator_dir('backward')
+            elif value < target_load and self.direction != 'forward':  # not far enough, go forward
                 print(value)
                 print('forward')
                 self.set_actuator_dir('forward')

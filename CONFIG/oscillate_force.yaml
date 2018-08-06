@@ -1,0 +1,51 @@
+# global configuration parameters
+CONFIG: !Config
+  version: 0.0.1
+  len_units: &UNITS_LEN raw
+  force_units: &UNITS_FORCE N
+  lower_limit: 4514
+  upper_limit: 4600
+  pos_adc_sample_rate: 128
+  pos_adc_gain: 1
+  pos_adc_channel: 1
+  strain_adc_sample_rate: 128
+  strain_adc_gain: 4
+  strain_adc_channel: 3
+# define any actions that you want to reuse multiple times in multiple routines
+ACTIONS:
+  CLEANUP: !Action &CLEANUP
+    name: CLEANUP
+  SET_POSTION: !Actioion &SET_POSITION
+    name: SET_POSITION
+  OSCILLATE: !Action &OSCILLATE
+    name: OSCILLATE
+    params:
+      len_units: *UNITS_LEN
+      force_units: *UNITS_FORCE
+      min_force: 5000
+      displacement: 86  # 1mm in raw levels.
+      # takes whatever comes first
+      repetitions: 10
+      # timeout: 3
+      speed: 1024
+      reset_closest: True
+# begin routine definitions
+ROUTINES:
+- !Routine
+  name: oscillate
+  len_units: *UNITS_LEN
+  force_units: *UNITS_FORCE
+  actions:
+    OSCILLATE: *OSCILLATE
+    CLEANUP: *CLEANUP
+  transitions:
+    START:
+      '*': OSCILLATE
+    OSCILLATE:
+      'timeout_stopped': CLEANUP
+      'repeats_stopped': CLEANUP
+      'timeout_reset': CLEANUP
+      'repeats_reset': CLEANUP
+      'error': ERROR
+    CLEANUP:
+      '*': END
