@@ -1,10 +1,16 @@
 # global configuration parameters
 CONFIG: !Config
+  # set version
   version: 0.0.1
+  # set length units, provide an anchor for use throughout the file specify the value.
   len_units: &UNITS_LEN raw
+  # set force units, provide an anchor for use throughout the file specify the value.
   force_units: &UNITS_FORCE N
+  # set lower boundary - not used in oscillate force file.
   lower_limit: 4514
+  # set lower boundary - not used in oscillate force file.
   upper_limit: 4600
+  # hardware configuration for sample rates and channels for the ADC - change if you change hardware
   pos_adc_sample_rate: 128
   pos_adc_gain: 1
   pos_adc_channel: 1
@@ -15,10 +21,10 @@ CONFIG: !Config
 ACTIONS:
   CLEANUP: !Action &CLEANUP
     name: CLEANUP
-  SET_POSTION: !Actioion &SET_POSITION
-    name: SET_POSITION
-  OSCILLATE: !Action &OSCILLATE
-    name: OSCILLATE
+  #  SET_POSTION: !Actioion &SET_POSITION
+  #    name: SET_POSITION
+  OSCILLATE_FORCE: !Action &OSCILLATE_FORCE
+    name: OSCILLATE_FORCE
     params:
       len_units: *UNITS_LEN
       force_units: *UNITS_FORCE
@@ -31,17 +37,18 @@ ACTIONS:
       reset_closest: True
 # begin routine definitions
 ROUTINES:
+#  routines is a list of routine definitions, so use a yaml list (the "-" )
 - !Routine
-  name: oscillate
+  name: OSCILLATE_FORCE
   len_units: *UNITS_LEN
   force_units: *UNITS_FORCE
   actions:
-    OSCILLATE: *OSCILLATE
+    OSCILLATE_FORCE: *OSCILLATE_FORCE
     CLEANUP: *CLEANUP
   transitions:
     START:
-      '*': OSCILLATE
-    OSCILLATE:
+      '*': OSCILLATE_FORCE
+    OSCILLATE_FORCE:
       'timeout_stopped': CLEANUP
       'repeats_stopped': CLEANUP
       'timeout_reset': CLEANUP

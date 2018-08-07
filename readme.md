@@ -9,10 +9,11 @@ As a user, there are two main areas you will be using to describe procedures:
 - [Actions](#actions) - define new actions for setup (`python`)
 - [Routines](#routines) - define new routines for setup (`yaml`)
 
-For a more description of what each area is for see the appropriate subsection here for a link to the area's documentation.
+For a more description of what each area is for see the appropriate subsection for a link to the area's documentation.
 
 #### Devs:
-As a developer, knowing the entire code base is not difficult but in addition to the stack, reading up on the protocols used to communicate between peripherals and the master controller will save you headache later. Recommended topics to cover include:
+As a developer, knowing the entire code base is not difficult but in addition to the stack,
+ reading up on the protocols used to communicate between peripherals and the master controller will save you headache later. Recommended topics to cover include:
 - I2C communications
 - UART communications
 - Datasheets for components
@@ -31,7 +32,7 @@ Currently the stack supports:
     - [x] DAC
     - [x] Temperature
     - [x] Load cell
-    - [ ] Strain measurement
+    - [x] Strain measurement
     - [ ] Fluid pump
 
 
@@ -40,7 +41,7 @@ Currently the stack supports:
     - [x] [MCP4725](#mcp4725)
     - [x] [MAX31856](#max31856)
     - [x] [VPG60001](#vpg60001) via [Sparkfun Openscale][openscale]
-    - [ ] Strain measurement
+    - [x] Strain measurement
 - Control:
 	- [x] [Actions](#actions)
     - [x] [Routines](#routines)
