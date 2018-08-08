@@ -1,8 +1,7 @@
 # Actions
 Put actions you will call via the [yaml][yaml] configuration files here.
+They will be automatically found and added provided the module file name contains a function matching the same name.
 
-Ensure that you add the routines to the [\_\_init\_\_.py][init.py] file.
-Using the `from <module> import <action>` syntax.
 
 ## Overview
 
