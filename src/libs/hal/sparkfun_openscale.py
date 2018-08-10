@@ -19,6 +19,7 @@ import yaml
 import serial
 from os.path import join as ospjoin
 from typing import Tuple, Dict, Union
+from libs.hal.constants import LOCK
 
 CFG_FILE_PATH = ospjoin(os.environ.get('OPENSCALE_CFG_PATH', '../../CONFIGS/'), 'openscale_cfg.yml')
 
@@ -82,7 +83,6 @@ class OpenScale(serial.Serial):
         ('raw_reading', 16),
         ('trigger_char', 23),
     )
-
 
     first_read = True
 
@@ -231,7 +231,6 @@ class OpenScale(serial.Serial):
         self.reset_input_buffer()
         self.write(self.trigger_char)
         self.reset_input_buffer()
-        
 
     @property
     def timestamp_enable(self):
@@ -584,15 +583,17 @@ class OpenScale(serial.Serial):
 
         key = (self._timestamp_enable << 4) | 0b01000 | (self._raw_reading_enable << 2) | \
               (self._local_temp_enable << 1) | self._remote_temp_enable
-        if self.first_read:
-            self.triggered_read()
-            res = self.read_until(b'\r\n')
-            while not res.endswith(b'Readings:'):
-                res += self.read(1)
-            self.readline()
-            self.first_read = False
-        self.write(self.cmds['trigger_char'])
-        res = self.read_until(b'\r\n').decode('utf-8').split(',')
+        with LOCK:
+            if self.first_read:
+                self.triggered_read()
+                res = self.read_until(b'\r\n')
+                while not res.endswith(b'Readings:'):
+                    res += self.read(1)
+                self.readline()
+                self.first_read = False
+            self.write(self.cmds['trigger_char'])
+            res = self.read_until(b'\r\n').decode('utf-8').split(',')
+
         res = [item for sublist in (r.split() for r in res) for item in sublist]
         data = ret_map[key](res)
         if to_force:
